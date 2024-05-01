@@ -1,4 +1,4 @@
-package webhook
+package main
 
 import (
 	"crypto/tls"
@@ -60,7 +60,7 @@ var CmdWebhook = &cobra.Command{
 After deploying it to Kubernetes cluster, the Administrator needs to create a ValidatingWebhookConfiguration
 in the Kubernetes cluster to register remote webhook admission controllers.`,
 	Args: cobra.MaximumNArgs(0),
-	Run:  main,
+	Run:  webhook,
 }
 
 func init() {
@@ -169,7 +169,7 @@ func serveMutatePods(w http.ResponseWriter, r *http.Request) {
 	serve(w, r)
 }
 
-func main(cmd *cobra.Command, args []string) {
+func webhook(cmd *cobra.Command, args []string) {
 
 	tlsConfig := TlsConfig{
 		CertFile: certFile,
@@ -178,7 +178,7 @@ func main(cmd *cobra.Command, args []string) {
 
 	http.HandleFunc("/mutating-pods", serveMutatePods)
 	server := &http.Server{
-		Addr:      fmt.Sprintf(":%d", 443),
+		Addr:      fmt.Sprintf(":%d", 8443),
 		TLSConfig: configTLS(tlsConfig),
 	}
 	err := server.ListenAndServeTLS("", "")

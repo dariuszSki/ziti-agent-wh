@@ -3,8 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/dariuszSki/ziti-agent-wh/src/webhook"
-
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/cli"
 )
@@ -17,7 +15,7 @@ func main() {
 		Version: Version,
 	}
 
-	rootCmd.AddCommand(webhook.CmdWebhook)
+	rootCmd.AddCommand(CmdWebhook)
 
 	// NOTE(claudiub): Some tests are passing logging related flags, so we need to be able to
 	// accept them. This will also include them in the printed help.
