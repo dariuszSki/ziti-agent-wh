@@ -60,7 +60,7 @@ var CmdWebhook = &cobra.Command{
 After deploying it to Kubernetes cluster, the Administrator needs to create a ValidatingWebhookConfiguration
 in the Kubernetes cluster to register remote webhook admission controllers.`,
 	Args: cobra.MaximumNArgs(0),
-	Run:  webhook,
+	Run:  main,
 }
 
 func init() {
@@ -169,7 +169,7 @@ func serveMutatePods(w http.ResponseWriter, r *http.Request) {
 	serve(w, r)
 }
 
-func webhook(cmd *cobra.Command, args []string) {
+func main(cmd *cobra.Command, args []string) {
 
 	tlsConfig := TlsConfig{
 		CertFile: certFile,

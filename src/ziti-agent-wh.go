@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/dariuszSki/ziti-agent-wh/webhook"
+	"github.com/dariuszSki/ziti-agent-wh/src/webhook"
 
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/cli"
