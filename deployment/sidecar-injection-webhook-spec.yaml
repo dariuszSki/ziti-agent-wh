@@ -1,0 +1,68 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ziti-sidecar-injector-service
+  namespace: ziti
+spec:
+  selector:
+    app: ziti-sidecar-injector-webhook
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ziti-sidecar-injector-wh-deployment
+  namespace: ziti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ziti-sidecar-injector-webhook
+  template:
+    metadata:
+      labels:
+        app: ziti-sidecar-injector-webhook
+    spec:
+      containers:
+      - name: ziti-sidecar-injector
+        image: docker.io/elblag91/ziti-agent:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: ziti-sidecar-injector
+webhooks:
+  - name: sidecar-injector.ziti.webhook
+    admissionReviewVersions: ["v1", "v1beta1"]
+    namespaceSelector:
+      matchLabels:
+        openziti/ziti-tunnel: enabled
+    rules:
+      - operations: ["*"]
+        apiGroups: [""]
+        apiVersions: ["v1", "v1beta1"]
+        resources: ["*/*"]
+        scope: "*"
+    clientConfig:
+      service:
+        name: ziti-sidecar-injector-service
+        namespace: ziti
+        port: 8080
+        path: "/mutate"
+    failurePolicy: Fail
+    sideEffects: None
+    timeoutSeconds: 5
+   
+
+
+
