@@ -82,6 +82,7 @@ func createPatch(currentPodSpec metav1.ObjectMeta, newPodSpec corev1.PodSpec) ([
 	if err != nil {
 		return nil, err
 	}
+	klog.Infof("Generated a JSON patch representing the changes to the Pod spec")
 	unpatched, err := json.Marshal(currentPodSpec)
 	if err != nil {
 		return nil, err
@@ -110,45 +111,45 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	println("received request")
+	klog.Infof("Receive Request")
 	// Read the AdmissionReview request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-
+	// klog.Infof("ReadAll")
 	// Unmarshal the request body into AdmissionReview struct
 	if err := json.Unmarshal(body, &review); err != nil {
 		http.Error(w, "Failed to unmarshal request body", http.StatusBadRequest)
 		return
 	}
-
+	// klog.Infof("Unmarshaled for AdmissionReview")
 	// Check if request is for Pod creation
 	if review.Request.Kind.Kind != "Pod" {
 		return
 	}
-
+	// klog.Infof("Checked if request is for Pod creation")
 	// Extract the Pod object from the request
 	pod := &corev1.Pod{}
 	if err := json.Unmarshal(review.Request.Object.Raw, pod); err != nil {
 		http.Error(w, "Failed to unmarshal pod object", http.StatusBadRequest)
 		return
 	}
-
+	klog.Infof("Extracted the Pod object from the request")
 	// Inject the sidecar container into the Pod spec
 	pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
 		Name:  sidecarConfig.Name,
 		Image: sidecarConfig.Image,
 	})
-
+	klog.Infof("Injected the sidecar container into the Pod spec")
 	// Create the AdmissionReview response with the mutated Pod
 	patch, err := createPatch(pod.ObjectMeta, pod.Spec)
 	if err != nil {
 		http.Error(w, "Failed to create patch", http.StatusInternalServerError)
 		return
 	}
-
+	klog.Infof("Created the AdmissionReview response with the mutated Pod")
 	review.Response = &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patch,
@@ -160,7 +161,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
 		return
 	}
-
+	klog.Infof("Returning Response")
 	w.Write(response)
 
 }
