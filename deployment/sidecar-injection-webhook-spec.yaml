@@ -56,7 +56,7 @@ webhooks:
       matchLabels:
         openziti/ziti-tunnel: enabled
     rules:
-      - operations: ["*"]
+      - operations: ["CREATE"]
         apiGroups: [""]
         apiVersions: ["v1", "v1beta1"]
         resources: ["*/*"]
