@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/klog/v2"
@@ -20,6 +19,7 @@ var (
 	keyFile       string
 	port          int
 	sidecarImage  string
+	sidecarName   string
 	runtimeScheme = runtime.NewScheme()
 	codecs        = serializer.NewCodecFactory(runtimeScheme)
 	deserializer  = codecs.UniversalDeserializer()
@@ -42,9 +42,10 @@ func init() {
 		"File containing the default x509 private key matching --tls-cert-file.")
 	CmdWebhook.Flags().IntVar(&port, "port", 9443,
 		"Secure port that the webhook listens on")
-	CmdWebhook.Flags().StringVar(&sidecarImage, "sidecar-image", "",
+	CmdWebhook.Flags().StringVar(&sidecarImage, "sidecar-image", "openziti/ziti-cli",
 		"Image to be used as the injected sidecar")
-
+	CmdWebhook.Flags().StringVar(&sidecarName, "sidecar-name", "ziti-tunnel",
+		"ContainerName to be used for the injected sidecar")
 	// AdmissionReview is registered for version admission.k8s.io/v1 or admission.k8s.io/v1beta1 in scheme "pkg/runtime/scheme.go:100"
 	_ = admissionv1.AddToScheme(runtimeScheme)
 	_ = admissionv1beta1.AddToScheme(runtimeScheme)
@@ -135,23 +136,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		if requestedAdmissionReview.Request.Kind.Kind == "Pod" {
-			klog.Infof(fmt.Sprintf("Admission Request v1 - Operation: %s", requestedAdmissionReview.Request.Operation))
-			pod := &corev1.Pod{}
-			if err := json.Unmarshal(requestedAdmissionReview.Request.Object.Raw, pod); err != nil {
-				http.Error(w, "Failed to unmarshal pod object", http.StatusBadRequest)
-				return
-			}
-			klog.Infof(fmt.Sprintf("Admission Request - Type: %s", pod.Kind))
-			klog.Infof(fmt.Sprintf("Admission Request - POD Name: %s", pod.ObjectMeta.Name))
-			klog.Infof(fmt.Sprintf("Admission Request - POD Status: %s", pod.Status.Phase))
-			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-				klog.Infof(fmt.Sprintf("Admission Request - Container Name: %s", pod.Status.ContainerStatuses[i].Name))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Running: %s", pod.Status.ContainerStatuses[i].State.Running))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Waiting: %s", pod.Status.ContainerStatuses[i].State.Waiting))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Terminated: %s", pod.Status.ContainerStatuses[i].State.Terminated))
-			}
-		}
+		klog.Infof(fmt.Sprintf("Admission Request v1 - Operation: %s", requestedAdmissionReview.Request.Operation))
 
 	case admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"):
 		requestedAdmissionReview, ok := obj.(*admissionv1.AdmissionReview)
@@ -165,23 +150,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		if requestedAdmissionReview.Request.Kind.Kind == "Pod" {
-			klog.Infof(fmt.Sprintf("Admission Request v1beta1 - Operation: %s", requestedAdmissionReview.Request.Operation))
-			pod := &corev1.Pod{}
-			if err := json.Unmarshal(requestedAdmissionReview.Request.Object.Raw, pod); err != nil {
-				http.Error(w, "Failed to unmarshal pod object", http.StatusBadRequest)
-				return
-			}
-			klog.Infof(fmt.Sprintf("Admission Request - Type: %s", pod.Kind))
-			klog.Infof(fmt.Sprintf("Admission Request - POD Name: %s", pod.ObjectMeta.Name))
-			klog.Infof(fmt.Sprintf("Admission Request - POD Status: %s", pod.Status.Phase))
-			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-				klog.Infof(fmt.Sprintf("Admission Request - Container Name: %s", pod.Status.ContainerStatuses[i].Name))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Running: %s", pod.Status.ContainerStatuses[i].State.Running))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Waiting: %s", pod.Status.ContainerStatuses[i].State.Waiting))
-				klog.Infof(fmt.Sprintf("Admission Request - Container State Terminated: %s", pod.Status.ContainerStatuses[i].State.Terminated))
-			}
-		}
+		klog.Infof(fmt.Sprintf("Admission Request v1beta1 - Operation: %s", requestedAdmissionReview.Request.Operation))
 
 	default:
 		msg := fmt.Sprintf("Unsupported group version kind: %v", gvk)
@@ -305,6 +274,9 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 // }
 
 func serveMutatePods(w http.ResponseWriter, r *http.Request) {
+	serve(w, r, newDelegateToV1AdmitHandler(mutatePodsSidecar))
+}
+func serveDeletePods(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, newDelegateToV1AdmitHandler(alwaysAllowDelayFiveSeconds))
 }
 
@@ -316,6 +288,7 @@ func webhook(cmd *cobra.Command, args []string) {
 	}
 
 	http.HandleFunc("/mutate-pods", serveMutatePods)
+	http.HandleFunc("/delete-pods", serveDeletePods)
 	server := &http.Server{
 		Addr:      fmt.Sprintf(":%d", port),
 		TLSConfig: configTLS(config),
