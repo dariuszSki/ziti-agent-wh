@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +16,40 @@ const (
 	]`
 )
 
-func mutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+func updateSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+	klog.Info("always-allow-with-delay sleeping for 5 seconds")
+	time.Sleep(5 * time.Second)
+	klog.Info("this webhook path allows update requests")
+	reviewResponse := admissionv1.AdmissionResponse{}
+	reviewResponse.Allowed = true
+	reviewResponse.Result = &metav1.Status{Message: "this webhook path allows update requests"}
+	return &reviewResponse
+}
+
+func deleteSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+	if !isPodResource(ar) {
+		return nil
+	}
+
+	raw := ar.Request.OldObject.Raw
+	pod := corev1.Pod{}
+	deserializer := codecs.UniversalDeserializer()
+	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
+		klog.Error(err)
+		return toV1AdmissionResponse(err)
+	}
+
+	shouldPatchPod := func(pod *corev1.Pod) bool {
+		return !hasContainer(pod.Spec.Containers, sidecarName)
+	}
+	return applyPodPatch(shouldPatchPod, &pod, fmt.Sprintf(podsSidecarPatch, sidecarImage, sidecarName))
+}
+
+func createSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+	if !isPodResource(ar) {
+		return nil
+	}
+
 	if sidecarImage == "" {
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
@@ -26,10 +60,28 @@ func mutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 			},
 		}
 	}
+
+	raw := ar.Request.Object.Raw
+	pod := corev1.Pod{}
+	deserializer := codecs.UniversalDeserializer()
+	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
+		klog.Error(err)
+		return toV1AdmissionResponse(err)
+	}
+
 	shouldPatchPod := func(pod *corev1.Pod) bool {
 		return !hasContainer(pod.Spec.Containers, sidecarName)
 	}
-	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, sidecarImage, sidecarName))
+	return applyPodPatch(shouldPatchPod, &pod, fmt.Sprintf(podsSidecarPatch, sidecarImage, sidecarName))
+}
+
+func isPodResource(ar admissionv1.AdmissionReview) bool {
+	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
+	if ar.Request.Resource != podResource {
+		klog.Errorf("expect resource to be %s", podResource)
+		return false
+	}
+	return true
 }
 
 func hasContainer(containers []corev1.Container, containerName string) bool {
@@ -45,39 +97,18 @@ func hasContainer(containers []corev1.Container, containerName string) bool {
 	return false
 }
 
-func applyPodPatch(ar admissionv1.AdmissionReview, shouldPatchPod func(*corev1.Pod) bool, patch string) *admissionv1.AdmissionResponse {
+func applyPodPatch(shouldPatchPod func(*corev1.Pod) bool, pod *corev1.Pod, patch string) *admissionv1.AdmissionResponse {
 	klog.Info("mutating pods")
-	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
-	if ar.Request.Resource != podResource {
-		klog.Errorf("expect resource to be %s", podResource)
-		return nil
-	}
-
-	raw := ar.Request.Object.Raw // Object.Raw
-	pod := corev1.Pod{}
-	deserializer := codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
-		klog.Error(err)
-		return toV1AdmissionResponse(err)
-	}
-	// klog.Info(fmt.Sprintf("Request Object: %s", raw))
-	// klog.Infof(fmt.Sprintf("Admission Request - Type: %s", pod.Kind))
-	// klog.Infof(fmt.Sprintf("Admission Request - Object Meta: %s", &pod.ObjectMeta))
-	// klog.Infof(fmt.Sprintf("Admission Request - Object Meta: %s", &pod.ObjectMeta))
-	// klog.Infof(fmt.Sprintf("Admission Request - POD Status: %s", pod.Status.Phase))
-	// for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-	// 	klog.Infof(fmt.Sprintf("Admission Request - Container Name: %s", pod.Status.ContainerStatuses[i].Name))
-	// 	klog.Infof(fmt.Sprintf("Admission Request - Container State Running: %s", pod.Status.ContainerStatuses[i].State.Running))
-	// 	klog.Infof(fmt.Sprintf("Admission Request - Container State Waiting: %s", pod.Status.ContainerStatuses[i].State.Waiting))
-	// 	klog.Infof(fmt.Sprintf("Admission Request - Container State Terminated: %s", pod.Status.ContainerStatuses[i].State.Terminated))
-	// }
 
 	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
-	if shouldPatchPod(&pod) {
+	if shouldPatchPod(pod) {
 		reviewResponse.Patch = []byte(patch)
 		pt := admissionv1.PatchTypeJSONPatch
 		reviewResponse.PatchType = &pt
+	} else {
+		reviewResponse.Result = &metav1.Status{Message: "this webhook path allows delete requests"}
+		klog.Infof(fmt.Sprintf("Container %s exists, entire pod is being deleted.", sidecarName))
 	}
 	return &reviewResponse
 }
