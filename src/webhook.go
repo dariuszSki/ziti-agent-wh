@@ -116,7 +116,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		klog.Infof(fmt.Sprintf("Admission Request v1 - Operation: %s", requestedAdmissionReview.Request.Operation))
+		// klog.Infof(fmt.Sprintf("Admission Request v1 - Operation: %s", requestedAdmissionReview.Request.Operation))
 
 	case admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"):
 		requestedAdmissionReview, ok := obj.(*admissionv1.AdmissionReview)
@@ -130,7 +130,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		klog.Infof(fmt.Sprintf("Admission Request v1beta1 - Operation: %s", requestedAdmissionReview.Request.Operation))
+		// klog.Infof(fmt.Sprintf("Admission Request v1beta1 - Operation: %s", requestedAdmissionReview.Request.Operation))
 
 	default:
 		msg := fmt.Sprintf("Unsupported group version kind: %v", gvk)
@@ -151,17 +151,21 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 	}
 }
 
-func serveCreateSC(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(createSidecar))
+func serveZitiTunnelSC(w http.ResponseWriter, r *http.Request) {
+	serve(w, r, newDelegateToV1AdmitHandler(zitiTunnel))
 }
 
-func serveDeleteSC(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(deleteSidecar))
-}
+// func serveCreateSC(w http.ResponseWriter, r *http.Request) {
+// 	serve(w, r, newDelegateToV1AdmitHandler(createSidecar))
+// }
 
-func serveUpdateSC(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(updateSidecar))
-}
+// func serveDeleteSC(w http.ResponseWriter, r *http.Request) {
+// 	serve(w, r, newDelegateToV1AdmitHandler(deleteSidecar))
+// }
+
+// func serveUpdateSC(w http.ResponseWriter, r *http.Request) {
+// 	serve(w, r, newDelegateToV1AdmitHandler(updateSidecar))
+// }
 
 func webhook(cmd *cobra.Command, args []string) {
 
@@ -170,9 +174,10 @@ func webhook(cmd *cobra.Command, args []string) {
 		KeyFile:  keyFile,
 	}
 
-	http.HandleFunc("/create", serveCreateSC)
-	http.HandleFunc("/delete", serveDeleteSC)
-	http.HandleFunc("/update", serveUpdateSC)
+	http.HandleFunc("/ziti-tunnel", serveZitiTunnelSC)
+	// http.HandleFunc("/create", serveCreateSC)
+	// http.HandleFunc("/delete", serveDeleteSC)
+	// http.HandleFunc("/update", serveUpdateSC)
 	server := &http.Server{
 		Addr:      fmt.Sprintf(":%d", port),
 		TLSConfig: configTLS(config),
