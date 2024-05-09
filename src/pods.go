@@ -17,13 +17,13 @@ const (
 	podsSidecarPatch string = `[
 		{"op":"add", "path":"/spec/containers/-","value":{"image":"%v","name":"%v","command":["/bin/bash"] ,"args":["-c", "while true; do ping localhost; sleep 60;done"],"resources":{}}}
 	]`
-	zitiCtrlAddress string = `https://e64a9603-3a63-47b4-9690-104fc5491db0.production.netfoundry.io:443`
+	zitiCtrlAddress string = ``
 )
 
 func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	reviewResponse := admissionv1.AdmissionResponse{}
 	pod := corev1.Pod{}
-	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Username: "ZTUSER050CE2D7A352708ADDDDB3095BD7E1D4757608C1", Password: "ZTPASSAB3C1AF0CEE671C3E26578A3C5FA85F7EA26D0DA"}
+	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Username: "", Password: ""}
 
 	switch ar.Request.Operation {
 	case "CREATE":
