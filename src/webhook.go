@@ -14,12 +14,15 @@ import (
 )
 
 var (
-	certFile      string
-	keyFile       string
-	port          int
-	sidecarImage  string
-	sidecarName   string
-	runtimeScheme = runtime.NewScheme()
+	certFile         string
+	keyFile          string
+	port             int
+	sidecarImage     string
+	sidecarName      string
+	zitiCtrlAddress  string
+	zitiCtrlUsername string
+	zitiCtrlPassword string
+	runtimeScheme    = runtime.NewScheme()
 )
 
 var CmdWebhook = &cobra.Command{
@@ -43,6 +46,12 @@ func init() {
 		"Image to be used as the injected sidecar")
 	CmdWebhook.Flags().StringVar(&sidecarName, "sidecar-name", "ziti-tunnel",
 		"ContainerName to be used for the injected sidecar")
+	CmdWebhook.Flags().StringVar(&zitiCtrlAddress, "ziti-ctrl-addr", "",
+		"Ziti Controller IP Address / FQDN")
+	CmdWebhook.Flags().StringVar(&zitiCtrlUsername, "ziti-ctrl-un", "",
+		"Ziti Controller Username")
+	CmdWebhook.Flags().StringVar(&zitiCtrlPassword, "ziti-ctrl-pw", "",
+		"Ziti Controller Password")
 
 	/*
 		AdmissionReview is registered for version admission.k8s.io/v1 or admission.k8s.io/v1beta1
@@ -155,18 +164,6 @@ func serveZitiTunnelSC(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, newDelegateToV1AdmitHandler(zitiTunnel))
 }
 
-// func serveCreateSC(w http.ResponseWriter, r *http.Request) {
-// 	serve(w, r, newDelegateToV1AdmitHandler(createSidecar))
-// }
-
-// func serveDeleteSC(w http.ResponseWriter, r *http.Request) {
-// 	serve(w, r, newDelegateToV1AdmitHandler(deleteSidecar))
-// }
-
-// func serveUpdateSC(w http.ResponseWriter, r *http.Request) {
-// 	serve(w, r, newDelegateToV1AdmitHandler(updateSidecar))
-// }
-
 func webhook(cmd *cobra.Command, args []string) {
 
 	config := Config{
@@ -175,9 +172,6 @@ func webhook(cmd *cobra.Command, args []string) {
 	}
 
 	http.HandleFunc("/ziti-tunnel", serveZitiTunnelSC)
-	// http.HandleFunc("/create", serveCreateSC)
-	// http.HandleFunc("/delete", serveDeleteSC)
-	// http.HandleFunc("/update", serveUpdateSC)
 	server := &http.Server{
 		Addr:      fmt.Sprintf(":%d", port),
 		TLSConfig: configTLS(config),

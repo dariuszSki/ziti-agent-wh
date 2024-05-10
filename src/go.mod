@@ -5,6 +5,8 @@ go 1.22.0
 toolchain go1.22.2
 
 require (
+	github.com/evanphx/json-patch/v5 v5.9.0
+	github.com/google/uuid v1.6.0
 	github.com/openziti/edge-api v0.26.18
 	github.com/openziti/sdk-golang v0.23.34
 	github.com/spf13/cobra v1.8.0
@@ -47,7 +49,6 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
