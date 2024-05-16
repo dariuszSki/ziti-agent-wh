@@ -10,17 +10,16 @@ import (
 	rest_model_edge "github.com/openziti/edge-api/rest_model"
 	"github.com/openziti/sdk-golang/ziti"
 	"github.com/openziti/sdk-golang/ziti/enroll"
-	"k8s.io/klog"
 )
 
-func CreateIdentity(name string, identityType rest_model_edge.IdentityType, edge *rest_management_api_client.ZitiEdgeManagement) (*identity.CreateIdentityCreated, error) {
+func CreateIdentity(name string, roleAttributes rest_model_edge.Attributes, identityType rest_model_edge.IdentityType, edge *rest_management_api_client.ZitiEdgeManagement) (*identity.CreateIdentityCreated, error) {
 	isAdmin := false
 	req := identity.NewCreateIdentityParams()
 	req.Identity = &rest_model_edge.IdentityCreate{
 		Enrollment:          &rest_model_edge.IdentityCreateEnrollment{Ott: true},
 		IsAdmin:             &isAdmin,
 		Name:                &name,
-		RoleAttributes:      nil,
+		RoleAttributes:      &roleAttributes,
 		ServiceHostingCosts: nil,
 		Tags:                nil,
 		Type:                &identityType,
@@ -73,7 +72,7 @@ func EnrollIdentity(zId string, edge *rest_management_api_client.ZitiEdgeManagem
 	if err != nil {
 		return nil, err
 	}
-	klog.Infof("enrolled ziti identity '%v'", zId)
+	// klog.Infof("enrolled ziti identity '%v'", zId)
 	return conf, nil
 }
 
@@ -87,6 +86,6 @@ func DeleteIdentity(zId string, edge *rest_management_api_client.ZitiEdgeManagem
 	if err != nil {
 		return err
 	}
-	klog.Infof("deleted ziti identity '%v'", zId)
+	// klog.Infof("deleted ziti identity '%v'", zId)
 	return nil
 }

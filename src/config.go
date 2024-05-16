@@ -2,6 +2,9 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
+	"os"
+	"strconv"
 
 	"k8s.io/klog/v2"
 )
@@ -33,4 +36,89 @@ func configTLS(config Config) *tls.Config {
 		// TODO: uses mutual tls after we agree on what cert the apiserver should use.
 		// ClientAuth:   tls.RequireAndVerifyClientCert,
 	}
+}
+
+func lookupEnvVars() {
+	// Environmental Variables to override the commandline inputs
+	value, ok = os.LookupEnv("TLS-CERT-FILE")
+	if ok {
+		certFile = value
+	} else {
+		if len(certFile) == 0 {
+			klog.Infof(fmt.Sprintf("Webhook Server tls cert file is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("TLS-PRIVATE-KEY-FILE")
+	if ok {
+		keyFile = value
+	} else {
+		if len(keyFile) == 0 {
+			klog.Infof(fmt.Sprintf("Webhook Server tls private key file is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("PORT")
+	if ok {
+		port, _ = strconv.Atoi(value)
+	} else {
+		if port <= 0 {
+			klog.Infof(fmt.Sprintf("Webhook Server Port is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("SIDECAR_IMAGE")
+	if ok {
+		sidecarImage = value
+	} else {
+		if len(sidecarImage) == 0 {
+			klog.Infof(fmt.Sprintf("Sidecar Image is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("SIDECAR_IMAGE_VERSION")
+	if ok {
+		sidecarImageVersion = value
+	} else {
+		if len(sidecarImageVersion) == 0 {
+			klog.Infof(fmt.Sprintf("Sidecar Image Version is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("SIDECAR_PREFIX")
+	if ok {
+		sidecarPrefix = value
+	} else {
+		if len(sidecarPrefix) == 0 {
+			klog.Infof(fmt.Sprintf("Sidecar Prefix is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("ZITI_CTRL_ADDRESS")
+	if ok {
+		zitiCtrlAddress = value
+	} else {
+		if len(zitiCtrlAddress) == 0 {
+			klog.Infof(fmt.Sprintf("Ziti Controller Address is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("ZITI_CTRL_USERNAME")
+	if ok {
+		zitiCtrlUsername = value
+	} else {
+		if len(zitiCtrlUsername) == 0 {
+			klog.Infof(fmt.Sprintf("Ziti Controller Username is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("ZITI_CTRL_PASSWORD")
+	if ok {
+		zitiCtrlPassword = value
+	} else {
+		if len(zitiCtrlPassword) == 0 {
+			klog.Infof(fmt.Sprintf("Ziti Controller Password is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("POD_SECURITY_CONTEXT_OVERRIDE")
+	if ok {
+		var err error
+		podSecurityOverride, err = strconv.ParseBool(value)
+		if err != nil {
+			klog.Info(err)
+		}
+	}
+
 }
