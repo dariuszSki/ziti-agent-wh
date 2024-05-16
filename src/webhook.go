@@ -14,15 +14,19 @@ import (
 )
 
 var (
-	certFile         string
-	keyFile          string
-	port             int
-	sidecarImage     string
-	sidecarName      string
-	zitiCtrlAddress  string
-	zitiCtrlUsername string
-	zitiCtrlPassword string
-	runtimeScheme    = runtime.NewScheme()
+	certFile            string
+	keyFile             string
+	port                int
+	sidecarImage        string
+	sidecarImageVersion string
+	sidecarPrefix       string
+	zitiCtrlAddress     string
+	zitiCtrlUsername    string
+	zitiCtrlPassword    string
+	podSecurityOverride bool
+	value               string
+	ok                  bool
+	runtimeScheme       = runtime.NewScheme()
 )
 
 var CmdWebhook = &cobra.Command{
@@ -37,14 +41,16 @@ in the Kubernetes cluster to register remote webhook admission controllers.`,
 
 func init() {
 	CmdWebhook.Flags().StringVar(&certFile, "tls-cert-file", "",
-		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert).")
+		"File containing the default x509 Certificate for HTTPS.")
 	CmdWebhook.Flags().StringVar(&keyFile, "tls-private-key-file", "",
 		"File containing the default x509 private key matching --tls-cert-file.")
 	CmdWebhook.Flags().IntVar(&port, "port", 9443,
 		"Secure port that the webhook listens on")
 	CmdWebhook.Flags().StringVar(&sidecarImage, "sidecar-image", "openziti/ziti-tunnel",
 		"Image to be used as the injected sidecar")
-	CmdWebhook.Flags().StringVar(&sidecarName, "sidecar-name", "ziti-tunnel",
+	CmdWebhook.Flags().StringVar(&sidecarImageVersion, "sidecar-image-version", "latest",
+		"Image Varsion to be used as the injected sidecar")
+	CmdWebhook.Flags().StringVar(&sidecarPrefix, "sidecar-prefix", "zt",
 		"ContainerName to be used for the injected sidecar")
 	CmdWebhook.Flags().StringVar(&zitiCtrlAddress, "ziti-ctrl-addr", "",
 		"Ziti Controller IP Address / FQDN")
@@ -52,6 +58,8 @@ func init() {
 		"Ziti Controller Username")
 	CmdWebhook.Flags().StringVar(&zitiCtrlPassword, "ziti-ctrl-pw", "",
 		"Ziti Controller Password")
+	CmdWebhook.Flags().BoolVar(&podSecurityOverride, "pod-sc-override", false,
+		"Override the security context at pod level, i.e. runAsNonRoot: false")
 
 	/*
 		AdmissionReview is registered for version admission.k8s.io/v1 or admission.k8s.io/v1beta1
@@ -125,7 +133,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		// klog.Infof(fmt.Sprintf("Admission Request v1 - Operation: %s", requestedAdmissionReview.Request.Operation))
+		klog.Infof(fmt.Sprintf("Admission Response v1: %s", responseObj))
 
 	case admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"):
 		requestedAdmissionReview, ok := obj.(*admissionv1.AdmissionReview)
@@ -139,7 +147,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		responseObj = responseAdmissionReview
 
-		// klog.Infof(fmt.Sprintf("Admission Request v1beta1 - Operation: %s", requestedAdmissionReview.Request.Operation))
+		klog.Infof(fmt.Sprintf("Admission Response UID: %s", responseAdmissionReview.Response.UID))
 
 	default:
 		msg := fmt.Sprintf("Unsupported group version kind: %v", gvk)
@@ -170,6 +178,8 @@ func webhook(cmd *cobra.Command, args []string) {
 		CertFile: certFile,
 		KeyFile:  keyFile,
 	}
+
+	lookupEnvVars()
 
 	http.HandleFunc("/ziti-tunnel", serveZitiTunnelSC)
 	server := &http.Server{

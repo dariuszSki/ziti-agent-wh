@@ -8,6 +8,7 @@ import (
 	"ziti-agent-wh/zitiEdge"
 
 	"github.com/google/uuid"
+	rest_model_edge "github.com/openziti/edge-api/rest_model"
 	"github.com/openziti/sdk-golang/ziti"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	pod := corev1.Pod{}
 	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Username: zitiCtrlUsername, Password: zitiCtrlPassword}
 
+	klog.Infof(fmt.Sprintf("Admission Request UID: %s", ar.Request.UID))
 	switch ar.Request.Operation {
 	case "CREATE":
 		klog.Infof(fmt.Sprintf("%s", ar.Request.Operation))
@@ -37,6 +39,10 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			klog.Error(err)
 			return toV1AdmissionResponse(err)
 		}
+
+		klog.Infof(fmt.Sprintf("Owners are %s", pod.OwnerReferences[0].UID))
+		klog.Infof(fmt.Sprintf("Pod UID is %s", pod.UID))
+		klog.Infof(fmt.Sprintf("Pod Labels are %s", &pod.Labels))
 
 		identityCfg, sidecarIdentityName := createAndEnrollIdentity(pod.Labels["app"], zitiCfg)
 		secretData, err := json.Marshal(identityCfg)
@@ -48,11 +54,11 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		kclient := kclient()
 
 		//Create secret in the same namespace
-		secretStatus, err := kclient.CoreV1().Secrets(pod.Namespace).Create(context.TODO(), &corev1.Secret{Data: map[string][]byte{sidecarIdentityName: secretData}, Type: "Opaque", ObjectMeta: metav1.ObjectMeta{Name: sidecarIdentityName}}, metav1.CreateOptions{})
+		_, err = kclient.CoreV1().Secrets(pod.Namespace).Create(context.TODO(), &corev1.Secret{Data: map[string][]byte{sidecarIdentityName: secretData}, Type: "Opaque", ObjectMeta: metav1.ObjectMeta{Name: sidecarIdentityName}}, metav1.CreateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}
-		klog.Infof(fmt.Sprintf("Secret %s was created at %s", secretStatus.Name, secretStatus.CreationTimestamp))
+		// klog.Infof(fmt.Sprintf("Secret %s was created at %s", secretStatus.Name, secretStatus.CreationTimestamp))
 
 		// add sidecar volume to pod
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
@@ -70,13 +76,46 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			klog.Error(err)
 		}
 
-		// add sidecar container to pod
+		// update pod dns config and policy
+		pod.Spec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{"127.0.0.1", "10.96.0.10"},
+			Searches:    []string{"ziti"},
+		}
+		dnsConfigBytes, err := json.Marshal(&pod.Spec.DNSConfig)
+		if err != nil {
+			klog.Error(err)
+		}
+
+		pod.Spec.DNSPolicy = "None"
+		dnsPolicyBytes, err := json.Marshal(&pod.Spec.DNSPolicy)
+		if err != nil {
+			klog.Error(err)
+		}
+
+		var podSecurityContextBytes []byte
+		var patch []JsonPatchEntry
+		var rootUser int64 = 0
+		var isNotTrue bool = false
+		var sidecarSecurityContext *corev1.SecurityContext
+
+		sidecarSecurityContext = &corev1.SecurityContext{
+			Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+		}
+
+		if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.RunAsUser != nil {
+			// run sidecar as root
+			sidecarSecurityContext = &corev1.SecurityContext{
+				Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}},
+				RunAsUser:    &rootUser,
+			}
+		}
+
 		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{
 			Name:            sidecarIdentityName,
-			Image:           sidecarImage,
+			Image:           fmt.Sprintf("%s:%s", sidecarImage, sidecarImageVersion),
 			Args:            []string{"tproxy", "-i", fmt.Sprintf("%v.json", sidecarIdentityName)},
 			VolumeMounts:    []corev1.VolumeMount{{Name: volumeMountName, MountPath: "/netfoundry", ReadOnly: true}},
-			SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_ADMIN"}}},
+			SecurityContext: sidecarSecurityContext,
 		})
 
 		containersBytes, err := json.Marshal(&pod.Spec.Containers)
@@ -84,8 +123,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			klog.Error(err)
 		}
 
-		// build json patch
-		patch := []JsonPatchEntry{
+		patch = []JsonPatchEntry{
 
 			JsonPatchEntry{
 				OP:    "add",
@@ -97,6 +135,32 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 				Path:  "/spec/volumes",
 				Value: volumesBytes,
 			},
+			JsonPatchEntry{
+				OP:    "replace",
+				Path:  "/spec/dnsPolicy",
+				Value: dnsPolicyBytes,
+			},
+			JsonPatchEntry{
+				OP:    "add",
+				Path:  "/spec/dnsConfig",
+				Value: dnsConfigBytes,
+			},
+		}
+
+		// update Pod Security Context RunAsNonRoot to false
+		if podSecurityOverride {
+			pod.Spec.SecurityContext.RunAsNonRoot = &isNotTrue
+			podSecurityContextBytes, err = json.Marshal(&pod.Spec.SecurityContext)
+			if err != nil {
+				klog.Error(err)
+			}
+			patch = append(patch, []JsonPatchEntry{
+				JsonPatchEntry{
+					OP:    "replace",
+					Path:  "/spec/securityContext",
+					Value: podSecurityContextBytes,
+				},
+			}...)
 		}
 
 		patchBytes, err := json.Marshal(&patch)
@@ -116,10 +180,10 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			return toV1AdmissionResponse(err)
 		}
 
-		sidecarIdentityName := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarName))
+		sidecarIdentityName := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
 		if len(sidecarIdentityName) > 0 {
 
-			klog.Infof(fmt.Sprintf("Deleting Ziti Identity"))
+			// klog.Infof(fmt.Sprintf("Deleting Ziti Identity"))
 
 			zitiClient, err := zitiEdge.Client(&zitiCfg)
 			if err != nil {
@@ -139,7 +203,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 				zId = *identityItem.ID
 			}
 
-			klog.Infof(fmt.Sprintf("ziti id length %d", len(zId)))
+			// klog.Infof(fmt.Sprintf("ziti id length %d", len(zId)))
 
 			// kubernetes client
 			kclient := kclient()
@@ -183,27 +247,34 @@ func hasContainer(containers []corev1.Container, containerName string) string {
 }
 
 func createSidecarIdentityName(appName string) string {
-	id := uuid.New()
-	return fmt.Sprintf("%s-%s-%s", appName, sidecarName, id)
+	id, _ := uuid.NewV7()
+	return fmt.Sprintf("%s-%s%s", trimString(appName), sidecarPrefix, id)
 }
 
 func createAndEnrollIdentity(name string, config zitiEdge.Config) (*ziti.Config, string) {
 	identityName := createSidecarIdentityName(name)
-	klog.Infof(fmt.Sprintf("Sidecar Name is %s", identityName))
+	// klog.Infof(fmt.Sprintf("Sidecar Name is %s", identityName))
 
 	zitiClient, err := zitiEdge.Client(&config)
 	if err != nil {
 		klog.Error(err)
 	}
 
-	identityDetails, _ := zitiEdge.CreateIdentity(identityName, "Device", zitiClient)
+	roleAttributes := rest_model_edge.Attributes{name}
+
+	identityDetails, _ := zitiEdge.CreateIdentity(identityName, roleAttributes, "Device", zitiClient)
 	klog.Infof(fmt.Sprintf("Created Ziti Identity zId: %s", identityDetails.GetPayload().Data.ID))
 
 	identityCfg, _ := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)
-	klog.Infof(fmt.Sprintf("Enrolled Ziti Identity cfg API: %s", identityCfg.ZtAPI))
-
-	// TODO create secret for ziti-tunnel in pod namespace
+	// klog.Infof(fmt.Sprintf("Enrolled Ziti Identity cfg API: %s", identityCfg.ZtAPI))
 
 	return identityCfg, identityName
 
+}
+
+func trimString(input string) string {
+	if len(input) > 24 {
+		return input[:24]
+	}
+	return input
 }
