@@ -21,6 +21,7 @@ USER root
 COPY ${ARTIFACTS_DIR}/ziti-agent-wh /usr/local/bin/
 COPY ${ARTIFACTS_DIR}/*.pem /home/ziggy/
 RUN chmod 0755 /usr/local/bin/ziti-agent-wh
+RUN chmod 0755 /home/ziggy/*.pem
 
 USER ziggy
 #COPY ${DOCKER_BUILD_DIR}/deployment/bashrc /home/ziggy/.bashrc

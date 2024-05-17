@@ -8,7 +8,6 @@ import (
 	"ziti-agent-wh/zitiEdge"
 
 	"github.com/google/uuid"
-	rest_model_edge "github.com/openziti/edge-api/rest_model"
 	"github.com/openziti/sdk-golang/ziti"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -78,8 +77,8 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 
 		// update pod dns config and policy
 		pod.Spec.DNSConfig = &corev1.PodDNSConfig{
-			Nameservers: []string{"127.0.0.1", "10.96.0.10"},
-			Searches:    []string{"ziti"},
+			Nameservers: []string{"127.0.0.1", clusterDnsServiceIP},
+			Searches:    searchDomainList,
 		}
 		dnsConfigBytes, err := json.Marshal(&pod.Spec.DNSConfig)
 		if err != nil {
@@ -260,9 +259,9 @@ func createAndEnrollIdentity(name string, config zitiEdge.Config) (*ziti.Config,
 		klog.Error(err)
 	}
 
-	roleAttributes := rest_model_edge.Attributes{name}
+	zitiIdentityRoles = []string{name}
 
-	identityDetails, _ := zitiEdge.CreateIdentity(identityName, roleAttributes, "Device", zitiClient)
+	identityDetails, _ := zitiEdge.CreateIdentity(identityName, zitiIdentityRoles, "Device", zitiClient)
 	klog.Infof(fmt.Sprintf("Created Ziti Identity zId: %s", identityDetails.GetPayload().Data.ID))
 
 	identityCfg, _ := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)

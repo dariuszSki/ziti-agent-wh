@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"k8s.io/klog/v2"
 )
@@ -120,5 +121,20 @@ func lookupEnvVars() {
 			klog.Info(err)
 		}
 	}
-
+	value, ok = os.LookupEnv("CLUSTER_DNS_SVC_IP")
+	if ok {
+		clusterDnsServiceIP = value
+	} else {
+		if len(clusterDnsServiceIP) == 0 {
+			klog.Infof(fmt.Sprintf("Cluster DNS Service IP is not set"))
+		}
+	}
+	value, ok = os.LookupEnv("SEARCH_DOMAIN_LIST")
+	if ok {
+		searchDomainList = []string(strings.Split(value, ","))
+	} else {
+		if len(searchDomainList) == 0 {
+			klog.Infof(fmt.Sprintf("A list of DNS search domains for host-name lookup is empty"))
+		}
+	}
 }
