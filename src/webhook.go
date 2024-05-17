@@ -24,6 +24,9 @@ var (
 	zitiCtrlUsername    string
 	zitiCtrlPassword    string
 	podSecurityOverride bool
+	clusterDnsServiceIP string
+	searchDomainList    []string
+	zitiIdentityRoles   []string
 	value               string
 	ok                  bool
 	runtimeScheme       = runtime.NewScheme()
@@ -60,6 +63,10 @@ func init() {
 		"Ziti Controller Password")
 	CmdWebhook.Flags().BoolVar(&podSecurityOverride, "pod-sc-override", false,
 		"Override the security context at pod level, i.e. runAsNonRoot: false")
+	CmdWebhook.Flags().StringVar(&clusterDnsServiceIP, "cluster-dns-svc-ip", "",
+		"Cluster DNS Service IP")
+	CmdWebhook.Flags().StringSliceVar(&searchDomainList, "search-domain-list", []string{},
+		"A list of DNS search domains for host-name lookup")
 
 	/*
 		AdmissionReview is registered for version admission.k8s.io/v1 or admission.k8s.io/v1beta1

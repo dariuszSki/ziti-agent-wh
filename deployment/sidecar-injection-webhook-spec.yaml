@@ -58,9 +58,11 @@ spec:
                 name: ziti-ctrl-creds
                 key:  password
           - name: POD_SECURITY_CONTEXT_OVERRIDE
-            value: "false"
-        securityContext:
-          runAsUser: 0
+            value: "true"
+          - name: CLUSTER_DNS_SVC_IP
+            value: "10.96.0.10"
+          - name: SEARCH_DOMAIN_LIST
+            value: "ziti,sidecar.svc"
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
