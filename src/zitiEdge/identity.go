@@ -19,7 +19,9 @@ func CreateIdentity(name string, roleAttributes rest_model_edge.Attributes, iden
 		Enrollment:          &rest_model_edge.IdentityCreateEnrollment{Ott: true},
 		IsAdmin:             &isAdmin,
 		Name:                &name,
+		AppData:             nil,
 		RoleAttributes:      &roleAttributes,
+		ExternalID:          nil,
 		ServiceHostingCosts: nil,
 		Tags:                nil,
 		Type:                &identityType,
@@ -30,6 +32,20 @@ func CreateIdentity(name string, roleAttributes rest_model_edge.Attributes, iden
 		return nil, err
 	}
 	return resp, nil
+}
+
+func PatchIdentity(zId string, roleAttributes rest_model_edge.Attributes, edge *rest_management_api_client.ZitiEdgeManagement) (*identity.PatchIdentityOK, error) {
+	req := identity.PatchIdentityParams{
+		ID: zId,
+		Identity: &rest_model_edge.IdentityPatch{
+			RoleAttributes: &roleAttributes,
+		},
+	}
+	resp, err := edge.Identity.PatchIdentity(&req, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp, err
 }
 
 func GetIdentityByName(name string, edge *rest_management_api_client.ZitiEdgeManagement) (*identity.ListIdentitiesOK, error) {

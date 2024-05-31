@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"ziti-agent-wh/zitiEdge"
 
@@ -28,22 +29,32 @@ type JsonPatchEntry struct {
 func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	reviewResponse := admissionv1.AdmissionResponse{}
 	pod := corev1.Pod{}
+	oldPod := corev1.Pod{}
 	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Username: zitiCtrlUsername, Password: zitiCtrlPassword}
 
 	klog.Infof(fmt.Sprintf("Admission Request UID: %s", ar.Request.UID))
 	switch ar.Request.Operation {
+
 	case "CREATE":
 		klog.Infof(fmt.Sprintf("%s", ar.Request.Operation))
+		klog.Infof(fmt.Sprintf("Object: %s", ar.Request.Object.Raw))
+		klog.Infof(fmt.Sprintf("OldObject: %s", ar.Request.OldObject.Raw))
 		if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &pod); err != nil {
 			klog.Error(err)
 			return toV1AdmissionResponse(err)
 		}
 
-		klog.Infof(fmt.Sprintf("Owners are %s", pod.OwnerReferences[0].UID))
-		klog.Infof(fmt.Sprintf("Pod UID is %s", pod.UID))
-		klog.Infof(fmt.Sprintf("Pod Labels are %s", &pod.Labels))
+		// klog.Infof(fmt.Sprintf("Owners are %s", pod.OwnerReferences[0].UID))
+		// klog.Infof(fmt.Sprintf("Pod UID is %s", pod.UID))
+		klog.Infof(fmt.Sprintf("Pod Labels are %s", pod.Labels))
+		klog.Infof(fmt.Sprintf("Pod Annotations are %s", pod.Annotations))
 
-		identityCfg, sidecarIdentityName := createAndEnrollIdentity(pod.Labels["app"], zitiCfg)
+		roles, ok := getIdentityAttributes(pod.Annotations)
+		if !ok {
+			roles = []string{pod.Labels["app"]}
+		}
+
+		identityCfg, sidecarIdentityName := createAndEnrollIdentity(pod.Labels["app"], roles, zitiCfg)
 		secretData, err := json.Marshal(identityCfg)
 		if err != nil {
 			klog.Error(err)
@@ -57,7 +68,6 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		if err != nil {
 			klog.Error(err)
 		}
-		// klog.Infof(fmt.Sprintf("Secret %s was created at %s", secretStatus.Name, secretStatus.CreationTimestamp))
 
 		// add sidecar volume to pod
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
@@ -124,22 +134,22 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 
 		patch = []JsonPatchEntry{
 
-			JsonPatchEntry{
+			{
 				OP:    "add",
 				Path:  "/spec/containers",
 				Value: containersBytes,
 			},
-			JsonPatchEntry{
+			{
 				OP:    "add",
 				Path:  "/spec/volumes",
 				Value: volumesBytes,
 			},
-			JsonPatchEntry{
+			{
 				OP:    "replace",
 				Path:  "/spec/dnsPolicy",
 				Value: dnsPolicyBytes,
 			},
-			JsonPatchEntry{
+			{
 				OP:    "add",
 				Path:  "/spec/dnsConfig",
 				Value: dnsConfigBytes,
@@ -154,7 +164,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 				klog.Error(err)
 			}
 			patch = append(patch, []JsonPatchEntry{
-				JsonPatchEntry{
+				{
 					OP:    "replace",
 					Path:  "/spec/securityContext",
 					Value: podSecurityContextBytes,
@@ -179,70 +189,101 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			return toV1AdmissionResponse(err)
 		}
 
-		sidecarIdentityName := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
-		if len(sidecarIdentityName) > 0 {
-
-			// klog.Infof(fmt.Sprintf("Deleting Ziti Identity"))
-
-			zitiClient, err := zitiEdge.Client(&zitiCfg)
-			if err != nil {
-				klog.Error(err)
-			}
-
-			klog.Infof(fmt.Sprintf("Sidecar Name is %s", sidecarIdentityName))
-
-			identityDetails, err := zitiEdge.GetIdentityByName(sidecarIdentityName, zitiClient)
-			if err != nil {
-				klog.Error(err)
-			}
-
-			var zId string = ""
-
-			for _, identityItem := range identityDetails.GetPayload().Data {
-				zId = *identityItem.ID
-			}
-
-			// klog.Infof(fmt.Sprintf("ziti id length %d", len(zId)))
-
+		zName, ok := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
+		if ok {
 			// kubernetes client
 			kclient := kclient()
-			secretData, err := kclient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), sidecarIdentityName, metav1.GetOptions{})
+			secretData, err := kclient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), zName, metav1.GetOptions{})
 			if err != nil {
 				klog.Error(err)
 			}
 			if len(secretData.Name) > 0 {
-				err = kclient.CoreV1().Secrets(pod.Namespace).Delete(context.TODO(), sidecarIdentityName, metav1.DeleteOptions{})
+				err = kclient.CoreV1().Secrets(pod.Namespace).Delete(context.TODO(), zName, metav1.DeleteOptions{})
 				if err != nil {
 					klog.Error(err)
 				} else {
-					klog.Infof(fmt.Sprintf("Secret %s was deleted at %s", sidecarIdentityName, secretData.DeletionTimestamp))
+					klog.Infof(fmt.Sprintf("Secret %s was deleted at %s", zName, secretData.DeletionTimestamp))
 				}
 
 			}
 
-			if len(zId) > 0 {
+			zId, ok := findIdentity(zName, zitiCfg)
+			if ok {
+				zitiClient, err := zitiEdge.Client(&zitiCfg)
+				if err != nil {
+					klog.Error(err)
+				}
+
 				err = zitiEdge.DeleteIdentity(zId, zitiClient)
 				if err != nil {
 					klog.Error(err)
 				}
 			}
+		}
 
+	case "UPDATE":
+		klog.Infof(fmt.Sprintf("%s", ar.Request.Operation))
+		klog.Infof(fmt.Sprintf("Object: %s", ar.Request.Object.Raw))
+		klog.Infof(fmt.Sprintf("OldObject: %s", ar.Request.OldObject.Raw))
+		if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &pod); err != nil {
+			klog.Error(err)
+			return toV1AdmissionResponse(err)
+		}
+		if _, _, err := deserializer.Decode(ar.Request.OldObject.Raw, nil, &oldPod); err != nil {
+			klog.Error(err)
+			return toV1AdmissionResponse(err)
+		}
+
+		zName, ok := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
+		if ok {
+			var roles []string
+			klog.Infof(fmt.Sprintf("Pod Annotations are %s", pod.Annotations))
+			newRoles, newOk := getIdentityAttributes(pod.Annotations)
+			klog.Infof(fmt.Sprintf("OldPod Annotations are %s", oldPod.Annotations))
+			oldRoles, oldOk := getIdentityAttributes(oldPod.Annotations)
+
+			if !newOk && oldOk {
+				// Ziti Annotation is removed
+				roles = []string{pod.Labels["app"]}
+			} else if newOk && !reflect.DeepEqual(newRoles, oldRoles) {
+				//Ziti Annotation is created or updated
+				roles = newRoles
+			} else {
+				roles = []string{}
+			}
+
+			klog.Infof(fmt.Sprintf("Roles are %s", roles))
+			klog.Infof(fmt.Sprintf("Roles length is %d", len(roles)))
+			// Update only if Ziti Annotation is changed
+			if len(roles) > 0 {
+				zitiClient, err := zitiEdge.Client(&zitiCfg)
+				if err != nil {
+					klog.Error(err)
+				}
+				zId, ok := findIdentity(zName, zitiCfg)
+				if ok {
+					identityDetails, err := zitiEdge.PatchIdentity(zId, roles, zitiClient)
+					if err != nil {
+						klog.Error(err)
+					}
+					klog.Infof(fmt.Sprintf("Updated Identity Details are %v", identityDetails))
+				}
+			}
 		}
 
 	}
-
 	reviewResponse.Allowed = true
-	reviewResponse.Result = &metav1.Status{Message: "Completed deletion operation"}
+	reviewResponse.Result = &metav1.Status{Message: fmt.Sprintf("Completed %s operation", ar.Request.Operation)}
 	return &reviewResponse
 }
 
-func hasContainer(containers []corev1.Container, containerName string) string {
+func hasContainer(containers []corev1.Container, containerName string) (string, bool) {
 	for _, container := range containers {
 		if strings.HasPrefix(container.Name, containerName) {
-			return container.Name
+			return container.Name, true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func createSidecarIdentityName(appName string) string {
@@ -250,7 +291,7 @@ func createSidecarIdentityName(appName string) string {
 	return fmt.Sprintf("%s-%s%s", trimString(appName), sidecarPrefix, id)
 }
 
-func createAndEnrollIdentity(name string, config zitiEdge.Config) (*ziti.Config, string) {
+func createAndEnrollIdentity(name string, roles []string, config zitiEdge.Config) (*ziti.Config, string) {
 	identityName := createSidecarIdentityName(name)
 	// klog.Infof(fmt.Sprintf("Sidecar Name is %s", identityName))
 
@@ -259,16 +300,54 @@ func createAndEnrollIdentity(name string, config zitiEdge.Config) (*ziti.Config,
 		klog.Error(err)
 	}
 
-	zitiIdentityRoles = []string{name}
+	identityDetails, _ := zitiEdge.CreateIdentity(identityName, roles, "Device", zitiClient)
+	//klog.Infof(fmt.Sprintf("Created Ziti Identity zId: %s", identityDetails.GetPayload().Data.ID))
 
-	identityDetails, _ := zitiEdge.CreateIdentity(identityName, zitiIdentityRoles, "Device", zitiClient)
-	klog.Infof(fmt.Sprintf("Created Ziti Identity zId: %s", identityDetails.GetPayload().Data.ID))
-
-	identityCfg, _ := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)
+	identityCfg, err := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)
+	if err != nil {
+		klog.Error(err)
+	}
 	// klog.Infof(fmt.Sprintf("Enrolled Ziti Identity cfg API: %s", identityCfg.ZtAPI))
 
 	return identityCfg, identityName
+}
 
+func findIdentity(name string, config zitiEdge.Config) (string, bool) {
+
+	var zId string = ""
+	// klog.Infof(fmt.Sprintf("Deleting Ziti Identity"))
+
+	zitiClient, err := zitiEdge.Client(&config)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	identityDetails, err := zitiEdge.GetIdentityByName(name, zitiClient)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	for _, identityItem := range identityDetails.GetPayload().Data {
+		zId = *identityItem.ID
+	}
+
+	if len(zId) > 0 {
+		klog.Infof(fmt.Sprintf("Identity Id is %s", zId))
+		return zId, true
+	}
+
+	return zId, false
+}
+
+func getIdentityAttributes(roles map[string]string) ([]string, bool) {
+	// if a ziti role key is not present, use app name as a role attribute
+	value, ok = roles[zitiRoleKey]
+	if ok {
+		if len(value) > 0 {
+			return strings.Split(value, ","), true
+		}
+	}
+	return []string{}, false
 }
 
 func trimString(input string) string {

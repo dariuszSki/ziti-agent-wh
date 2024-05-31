@@ -5,7 +5,6 @@ go 1.22.0
 toolchain go1.22.2
 
 require (
-	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/google/uuid v1.6.0
 	github.com/openziti/edge-api v0.26.18
 	github.com/openziti/sdk-golang v0.23.34
@@ -14,7 +13,6 @@ require (
 	k8s.io/apimachinery v0.30.0
 	k8s.io/client-go v0.30.0
 	k8s.io/component-base v0.30.0
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.120.1
 )
 
