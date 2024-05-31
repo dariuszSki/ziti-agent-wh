@@ -42,3 +42,26 @@ if resources are already deployed in this namespace, one can run this to restart
 ```bash
 kubectl rollout restart deployment/{appname} -n {ns name} --context $CLUSTER 
 ```
+
+***Note: With version 1.0.4, one can add annotation to pods and update the ziti roles wihtout restarting a pod. If more than one replica is present in the deployment, then the deployment needs to be updated and pods will be restarted or annotate each pod separately.***
+
+New environmental variable to be used for this option that will be read by the webhook.
+```bash
+- name: ZITI_ROLE_KEY
+  value: "identity.openziti.io/role-attributes"
+```
+
+Example of key/value for the annotation. The annotation value must be a string, where roles are separated by comma if more than one needs to be configured
+```bash
+kubectl annotate pod/adservice-86fc68848-dgtdz identity.openziti.io/role-attributes=sales,us-east
+```
+Deployment with immediate rollout restart
+```bash
+kubectl patch deployment/adservice -p '{"spec":{"template":{"metadata":{"annotations":{"identity.openziti.io/role-attributes":"us-east"}}}}}'
+```
+Or annotate and rollout restart anytime after
+```bash
+kubectl annotate deployment/adservice identity.openziti.io/role-attributes=edge,sales,us-east
+```
+
+

@@ -137,4 +137,12 @@ func lookupEnvVars() {
 			klog.Infof(fmt.Sprintf("A list of DNS search domains for host-name lookup is empty"))
 		}
 	}
+	value, ok = os.LookupEnv("ZITI_ROLE_KEY")
+	if ok {
+		zitiRoleKey = value
+	} else {
+		if len(zitiRoleKey) == 0 {
+			klog.Infof(fmt.Sprintf("A ziti role key is not present in the pod annotations"))
+		}
+	}
 }

@@ -27,6 +27,7 @@ var (
 	clusterDnsServiceIP string
 	searchDomainList    []string
 	zitiIdentityRoles   []string
+	zitiRoleKey         string
 	value               string
 	ok                  bool
 	runtimeScheme       = runtime.NewScheme()
@@ -67,6 +68,8 @@ func init() {
 		"Cluster DNS Service IP")
 	CmdWebhook.Flags().StringSliceVar(&searchDomainList, "search-domain-list", []string{},
 		"A list of DNS search domains for host-name lookup")
+	CmdWebhook.Flags().StringVar(&zitiRoleKey, "ziti-role-key", "",
+		"Ziti Identity Role Key used in pod annotation")
 
 	/*
 		AdmissionReview is registered for version admission.k8s.io/v1 or admission.k8s.io/v1beta1
