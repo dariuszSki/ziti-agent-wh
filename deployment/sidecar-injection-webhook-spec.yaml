@@ -139,8 +139,8 @@ metadata:
   namespace: ziti
 type: Opaque
 data:
-  username: WlRVU0VSMDUwQ0UyRDdBMzUyNzA4QURERERCMzA5NUJEN0UxRDQ3NTc2MDhDMQ==
-  password: WlRQQVNTQUIzQzFBRjBDRUU2NzFDM0UyNjU3OEEzQzVGQTg1RjdFQTI2RDBEQQ==
+  username: "{base64|your_value}"
+  password: "{base64|your_value}"
 
 ---
 apiVersion: v1
@@ -149,7 +149,7 @@ metadata:
   name: ziti-ctrl-cfg
   namespace: ziti
 data:
-  address: https://e64a9603-3a63-47b4-9690-104fc5491db0.production.netfoundry.io:443
+  address: "{https://your_fqdn:port}"
   zitiRoleKey: identity.openziti.io/role-attributes
   podSecurityContextOverride: "true"
   clusterDnsSvcIp: 10.92.128.10
