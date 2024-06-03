@@ -4,7 +4,7 @@ To deploy to your cluster for testing:
 
 ***Note: All resources in the spec are configured for namespace `ziti`. One can replace it with his/her own namespace by replacing `ziti` with a new one. `metadata: namespace: ziti`. The webhook container was precreated for the testing and it is already configured in the deployment spec `docker.io/elblag91/ziti-agent-wh:1.0.3`. The Identity Role Attribute is set to the app name in this current version and it is not configurable right now.***
 
-Update the secret and config map templates with the ziti controller detaisl and some additional sidecar specific configurations in the webhook spec file.
+Update the secret and config map templates with the ziti controller details and some additional sidecar specific configuration in the webhook spec file.
 ```bash
 # secret
 data:
