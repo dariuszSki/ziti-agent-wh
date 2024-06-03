@@ -35,7 +35,7 @@ if resources are already deployed in this namespace, one can run this to restart
 kubectl rollout restart deployment/{appname} -n {ns name} --context $CLUSTER 
 ```
 
-***Note: With version 1.0.4, one can add annotation to pods and update the ziti roles wihtout restarting a pod. If more than one replica is present in the deployment, then the deployment needs to be updated and pods will be restarted or annotate each pod separately.***
+***Note: With version 1.0.4, one can add annotation to pods and update the ziti roles without restarting a pod. If more than one replica is present in the deployment, then the deployment needs to be updated and pods will be restarted or annotate each pod separately.***
 
 New environmental variable to be used for this option that will be read by the webhook.
 ```bash
