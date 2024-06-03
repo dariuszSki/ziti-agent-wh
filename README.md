@@ -51,9 +51,5 @@ Deployment with immediate rollout restart
 ```bash
 kubectl patch deployment/adservice -p '{"spec":{"template":{"metadata":{"annotations":{"identity.openziti.io/role-attributes":"us-east"}}}}}'
 ```
-Or annotate and rollout restart anytime after
-```bash
-kubectl annotate deployment/adservice identity.openziti.io/role-attributes=edge,sales,us-east
-```
 
 
