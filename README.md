@@ -4,28 +4,20 @@ To deploy to your cluster for testing:
 
 ***Note: All resources in the spec are configured for namespace `ziti`. One can replace it with his/her own namespace by replacing `ziti` with a new one. `metadata: namespace: ziti`. The webhook container was precreated for the testing and it is already configured in the deployment spec `docker.io/elblag91/ziti-agent-wh:1.0.3`. The Identity Role Attribute is set to the app name in this current version and it is not configurable right now.***
 
-Update the secret and config map templates with the ziti controller password/username/DNS-IP-name in the webhook spec file.
+Update the secret and config map templates with the ziti controller detaisl and some additional sidecar specific configurations in the webhook spec file.
 ```bash
 # secret
 data:
-   username: "{base64|your_value}"
-   password: "{base64|your_value}"
-
+  username: "{base64|your_value}"
+  password: "{base64|your_value}"
 
 # configmap
 data:
-   address: "{https://your_fqdn:port}"
-```
-
-Update the the rest of deployment env vars as needed:
-```bash
-env:
-    - name: POD_SECURITY_CONTEXT_OVERRIDE
-      value: "false"
-    - name: CLUSTER_DNS_SVC_IP
-      value: "10.96.0.10"
-    - name: SEARCH_DOMAIN_LIST
-      value: "ziti,sidecar.svc"
+  address: "{https://your_fqdn:port}"
+  zitiRoleKey: identity.openziti.io/role-attributes
+  podSecurityContextOverride: "true"
+  clusterDnsSvcIp: 10.92.128.10
+  SearchDomainList: ziti,sidecar.svc
 ```
 
 Run the spec
@@ -47,8 +39,8 @@ kubectl rollout restart deployment/{appname} -n {ns name} --context $CLUSTER
 
 New environmental variable to be used for this option that will be read by the webhook.
 ```bash
-- name: ZITI_ROLE_KEY
-  value: "identity.openziti.io/role-attributes"
+data:
+  zitiRoleKey: identity.openziti.io/role-attributes
 ```
 
 Example of key/value for the annotation. The annotation value must be a string, where roles are separated by comma if more than one needs to be configured

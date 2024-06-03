@@ -58,13 +58,25 @@ spec:
                 name: ziti-ctrl-creds
                 key:  password
           - name: ZITI_ROLE_KEY
-            value: "identity.openziti.io/role-attributes"
+            valueFrom:
+              configMapKeyRef:
+                name: ziti-ctrl-cfg
+                key:  zitiRoleKey
           - name: POD_SECURITY_CONTEXT_OVERRIDE
-            value: "true"
+            valueFrom:
+              configMapKeyRef:
+                name: ziti-ctrl-cfg
+                key:  podSecurityContextOverride
           - name: CLUSTER_DNS_SVC_IP
-            value: "10.92.128.10"
+            valueFrom:
+              configMapKeyRef:
+                name: ziti-ctrl-cfg
+                key:  clusterDnsSvcIp
           - name: SEARCH_DOMAIN_LIST
-            value: "ziti,sidecar.svc"
+            valueFrom:
+              configMapKeyRef:
+                name: ziti-ctrl-cfg
+                key:  SearchDomainList
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -138,3 +150,8 @@ metadata:
   namespace: ziti
 data:
   address: "{https://your_fqdn:port}"
+  zitiRoleKey: identity.openziti.io/role-attributes
+  podSecurityContextOverride: "true"
+  clusterDnsSvcIp: 10.92.128.10
+  SearchDomainList: ziti,sidecar.svc
+
