@@ -2,7 +2,7 @@
 
 To deploy to your cluster for testing:
 
-**Note: All resources in the spec are configured for namespace `ziti`. One can replace it with his/her own namespace by replacing `ziti` with a new one. `metadata: namespace: ziti`. The webhook container was precreated for the testing and it is already configured in the deployment spec `docker.io/elblag91/ziti-agent-wh:{tag}`. The Identity Role Attribute is set to the app name in this current version and it is not configurable right now.**
+**Note: All resources in the spec are configured for namespace `ziti`. One can replace it with his/her own namespace by replacing `ziti` with a new one. `metadata: namespace: ziti`. The webhook container was precreated for the testing and it is already configured in the deployment spec `docker.io/elblag91/ziti-agent-wh:{tag}`.**
 
 Update the secret and config map templates with the ziti controller details and some additional sidecar specific configuration in the webhook spec file.
 ```bash
@@ -35,9 +35,9 @@ if resources are already deployed in this namespace, one can run this to restart
 kubectl rollout restart deployment/{appname} -n {ns name} --context $CLUSTER 
 ```
 
-**Note: One can add annotation to pods and update the ziti roles without restarting a pod. If more than one replica is present in the deployment, then the deployment needs to be updated and pods will be restarted or annotate each pod separately.**
+**Note: The Identity Role Attribute is set to the app name. One can add annotation to pods to update attributes without restarting pods. If more than one replica is present in the deployment, then the deployment needs to be updated and pods will be restarted or annotate each pod separately.**
 
-New environmental variable to be used for this option that will be read by the webhook.
+Environmental variable to be used for this option that will be read by the webhook.
 ```bash
 data:
   zitiRoleKey: identity.openziti.io/role-attributes
