@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: ziti-sidecar-injector
-        image: docker.io/elblag91/ziti-agent-wh:0.1.0
+        image: docker.io/elblag91/ziti-agent-wh:0.2.0
         imagePullPolicy: Always
         ports:
         - containerPort: 9443
@@ -67,11 +67,6 @@ spec:
               configMapKeyRef:
                 name: ziti-ctrl-cfg
                 key:  podSecurityContextOverride
-          - name: CLUSTER_DNS_SVC_IP
-            valueFrom:
-              configMapKeyRef:
-                name: ziti-ctrl-cfg
-                key:  clusterDnsSvcIp
           - name: SEARCH_DOMAIN_LIST
             valueFrom:
               configMapKeyRef:
@@ -114,7 +109,7 @@ metadata:
   name: ziti-agent-wh-roles
 rules:
 - apiGroups: [""] # "" indicates the core API group
-  resources: ["secrets"]
+  resources: ["secrets","services"]
   verbs: ["get", "list", "create", "delete"]
 
 ---
@@ -152,6 +147,5 @@ data:
   address: "{https://your_fqdn:port}"
   zitiRoleKey: identity.openziti.io/role-attributes
   podSecurityContextOverride: "true"
-  clusterDnsSvcIp: 10.92.128.10
-  SearchDomainList: ziti,sidecar.svc
+  SearchDomainList: ziti,test.svc
 

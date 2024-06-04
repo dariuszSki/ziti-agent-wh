@@ -189,6 +189,7 @@ func webhook(cmd *cobra.Command, args []string) {
 		KeyFile:  keyFile,
 	}
 
+	klog.Infof("Current version is %s", Version)
 	lookupEnvVars()
 
 	http.HandleFunc("/ziti-tunnel", serveZitiTunnelSC)

@@ -53,12 +53,12 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			roles = []string{pod.Labels["app"]}
 		}
 
-		zitiClient, err := zitiEdge.Client(&zitiCfg)
+		zClient, err := zitiEdge.Client(&zitiCfg)
 		if err != nil {
 			return failureResponse(reviewResponse, err)
 		}
 
-		identityCfg, sidecarIdentityName, err := createAndEnrollIdentity(pod.Labels["app"], roles, zitiClient)
+		identityCfg, sidecarIdentityName, err := createAndEnrollIdentity(pod.Labels["app"], roles, zClient)
 		if identityCfg == nil {
 			return failureResponse(reviewResponse, err)
 		}
@@ -69,12 +69,25 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		}
 
 		// kubernetes client
-		kclient := kclient()
+		kClient := kclient()
 
 		//Create secret in the same namespace
-		_, err = kclient.CoreV1().Secrets(pod.Namespace).Create(context.TODO(), &corev1.Secret{Data: map[string][]byte{sidecarIdentityName: secretData}, Type: "Opaque", ObjectMeta: metav1.ObjectMeta{Name: sidecarIdentityName}}, metav1.CreateOptions{})
+		_, err = kClient.CoreV1().Secrets(pod.Namespace).Create(context.TODO(), &corev1.Secret{Data: map[string][]byte{sidecarIdentityName: secretData}, Type: "Opaque", ObjectMeta: metav1.ObjectMeta{Name: sidecarIdentityName}}, metav1.CreateOptions{})
 		if err != nil {
 			klog.Error(err)
+		}
+
+		if len(clusterDnsServiceIP) == 0 {
+			dnsService, err := kClient.CoreV1().Services("kube-system").Get(context.TODO(), "kube-dns", metav1.GetOptions{})
+			if err != nil {
+				klog.Error(err)
+			}
+			if len(dnsService.Spec.ClusterIP) != 0 {
+				clusterDnsServiceIP = dnsService.Spec.ClusterIP
+				klog.Infof(fmt.Sprintf("Looked up DNS SVC ClusterIP and is %s", dnsService.Spec.ClusterIP))
+			} else {
+				klog.Info("Looked up DNS SVC ClusterIP and is not found")
+			}
 		}
 
 		// add sidecar volume to pod
@@ -200,13 +213,13 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		zName, ok := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
 		if ok {
 			// kubernetes client
-			kclient := kclient()
-			secretData, err := kclient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), zName, metav1.GetOptions{})
+			kClient := kclient()
+			secretData, err := kClient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), zName, metav1.GetOptions{})
 			if err != nil {
 				klog.Error(err)
 			}
 			if len(secretData.Name) > 0 {
-				err = kclient.CoreV1().Secrets(pod.Namespace).Delete(context.TODO(), zName, metav1.DeleteOptions{})
+				err = kClient.CoreV1().Secrets(pod.Namespace).Delete(context.TODO(), zName, metav1.DeleteOptions{})
 				if err != nil {
 					klog.Error(err)
 				} else {
@@ -214,17 +227,17 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 				}
 			}
 
-			zitiClient, err := zitiEdge.Client(&zitiCfg)
+			zClient, err := zitiEdge.Client(&zitiCfg)
 			if err != nil {
 				return failureResponse(reviewResponse, err)
 			}
 
-			zId, ok, err := findIdentity(zName, zitiClient)
+			zId, ok, err := findIdentity(zName, zClient)
 			if err != nil {
 				return failureResponse(reviewResponse, err)
 			}
 			if ok {
-				err = zitiEdge.DeleteIdentity(zId, zitiClient)
+				err = zitiEdge.DeleteIdentity(zId, zClient)
 				if err != nil {
 					return failureResponse(reviewResponse, err)
 				}
@@ -266,13 +279,13 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			klog.Infof(fmt.Sprintf("Roles length is %d", len(roles)))
 			// Update only if Ziti Annotation is changed
 			if len(roles) > 0 {
-				zitiClient, err := zitiEdge.Client(&zitiCfg)
+				zClient, err := zitiEdge.Client(&zitiCfg)
 				if err != nil {
 					return failureResponse(reviewResponse, err)
 				}
-				zId, ok, err := findIdentity(zName, zitiClient)
+				zId, ok, err := findIdentity(zName, zClient)
 				if ok {
-					identityDetails, err := zitiEdge.PatchIdentity(zId, roles, zitiClient)
+					identityDetails, err := zitiEdge.PatchIdentity(zId, roles, zClient)
 					if err != nil {
 						return failureResponse(reviewResponse, err)
 					}
@@ -300,16 +313,16 @@ func createSidecarIdentityName(appName string) string {
 	return fmt.Sprintf("%s-%s%s", trimString(appName), sidecarPrefix, id)
 }
 
-func createAndEnrollIdentity(name string, roles []string, zitiClient *rest_management_api_client.ZitiEdgeManagement) (*ziti.Config, string, error) {
+func createAndEnrollIdentity(name string, roles []string, zClient *rest_management_api_client.ZitiEdgeManagement) (*ziti.Config, string, error) {
 	identityName := createSidecarIdentityName(name)
 
-	identityDetails, err := zitiEdge.CreateIdentity(identityName, roles, "Device", zitiClient)
+	identityDetails, err := zitiEdge.CreateIdentity(identityName, roles, "Device", zClient)
 	if err != nil {
 		klog.Error(err)
 		return nil, identityName, err
 	}
 
-	identityCfg, err := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)
+	identityCfg, err := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zClient)
 	if err != nil {
 		klog.Error(err)
 		return nil, identityName, err
@@ -318,12 +331,12 @@ func createAndEnrollIdentity(name string, roles []string, zitiClient *rest_manag
 	return identityCfg, identityName, nil
 }
 
-func findIdentity(name string, zitiClient *rest_management_api_client.ZitiEdgeManagement) (string, bool, error) {
+func findIdentity(name string, zClient *rest_management_api_client.ZitiEdgeManagement) (string, bool, error) {
 
 	var zId string = ""
 	// klog.Infof(fmt.Sprintf("Deleting Ziti Identity"))
 
-	identityDetails, err := zitiEdge.GetIdentityByName(name, zitiClient)
+	identityDetails, err := zitiEdge.GetIdentityByName(name, zClient)
 	if err != nil {
 		klog.Error(err)
 		return zId, false, err

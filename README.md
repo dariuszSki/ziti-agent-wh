@@ -16,7 +16,6 @@ data:
   address: "{https://your_fqdn:port}"
   zitiRoleKey: identity.openziti.io/role-attributes
   podSecurityContextOverride: "true"
-  clusterDnsSvcIp: 10.92.128.10
   SearchDomainList: ziti,sidecar.svc
 ```
 
@@ -52,4 +51,19 @@ Deployment with immediate rollout restart
 kubectl patch deployment/adservice -p '{"spec":{"template":{"metadata":{"annotations":{"identity.openziti.io/role-attributes":"us-east"}}}}}'
 ```
 
+**Note: By default, the DNS Service ClusterIP is looked up. If one wants to configure a custom DNS server IP, it is configurable.**
+
+```bash
+# This configmap option can be added
+data:
+  clusterDnsSvcIp: 1.1.1.1
+
+# This env var needs to be added as well to the webhook deployment spec
+env:
+  - name: CLUSTER_DNS_SVC_IP
+    valueFrom:
+      configMapKeyRef:
+        name: ziti-ctrl-cfg
+        key:  clusterDnsSvcIp
+```
 

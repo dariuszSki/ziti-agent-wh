@@ -126,7 +126,8 @@ func lookupEnvVars() {
 		clusterDnsServiceIP = value
 	} else {
 		if len(clusterDnsServiceIP) == 0 {
-			klog.Infof(fmt.Sprintf("Cluster DNS Service IP is not set"))
+			klog.Infof(fmt.Sprintf("Custom DNS Server IP is not set"))
+			klog.Infof(fmt.Sprintf("DNS Service ClusterIP will be looked up"))
 		}
 	}
 	value, ok = os.LookupEnv("SEARCH_DOMAIN_LIST")
