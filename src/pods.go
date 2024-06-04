@@ -53,7 +53,12 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 			roles = []string{pod.Labels["app"]}
 		}
 
-		identityCfg, sidecarIdentityName, err := createAndEnrollIdentity(pod.Labels["app"], roles, zitiCfg)
+		zitiClient, err := zitiEdge.Client(&zitiCfg)
+		if err != nil {
+			return failureResponse(reviewResponse, err)
+		}
+
+		identityCfg, sidecarIdentityName, err := createAndEnrollIdentity(pod.Labels["app"], roles, zitiClient)
 		if identityCfg == nil {
 			return failureResponse(reviewResponse, err)
 		}
@@ -295,17 +300,14 @@ func createSidecarIdentityName(appName string) string {
 	return fmt.Sprintf("%s-%s%s", trimString(appName), sidecarPrefix, id)
 }
 
-func createAndEnrollIdentity(name string, roles []string, config zitiEdge.Config) (*ziti.Config, string, error) {
+func createAndEnrollIdentity(name string, roles []string, zitiClient *rest_management_api_client.ZitiEdgeManagement) (*ziti.Config, string, error) {
 	identityName := createSidecarIdentityName(name)
 
-	zitiClient, err := zitiEdge.Client(&config)
+	identityDetails, err := zitiEdge.CreateIdentity(identityName, roles, "Device", zitiClient)
 	if err != nil {
 		klog.Error(err)
 		return nil, identityName, err
 	}
-
-	identityDetails, _ := zitiEdge.CreateIdentity(identityName, roles, "Device", zitiClient)
-	//klog.Infof(fmt.Sprintf("Created Ziti Identity zId: %s", identityDetails.GetPayload().Data.ID))
 
 	identityCfg, err := zitiEdge.EnrollIdentity(identityDetails.GetPayload().Data.ID, zitiClient)
 	if err != nil {
