@@ -1,5 +1,8 @@
 ## Demo steps
 
+### Use Case Target
+![image](./images/k8s-distributed-app.svg)
+
 ### Prerequisties:
 
 1. create NetFoundry Network and Ziti Components
@@ -19,7 +22,7 @@
 1. Identities --> Create
 1. Fill in details and save (i.e. updb type)
 ![image](./images/CreateAdminIdentity.png)
-1. Download jwt token and enroll it. Need to provide password to use when enrolling
+1. Download jwt token and enroll it. Password to be provided when enrolling
 ![image](./images/EnrollAdminIdentity.png)
 ```shell
 ziti edge enroll -j adminUser.jwt -p $CTRL_PASSWORD
@@ -45,7 +48,7 @@ export GKE_REGION=""
 ```
 
 ### Create Services, Service Policies, Edge Router Policy, Service Edge Router Policy
-1. Create postman collection to create ziti components
+1. Postman collection to create ziti components
 ```shell
 cat <<EOF >Istio_Bookinfo_App.postman_collection.json
   {
@@ -1393,7 +1396,7 @@ cat <<EOF >Istio_Bookinfo_App.postman_collection.json
   }
 EOF
 ```
-1. Create postman collection to create env cars for api collections above
+1. Postman collection to supply env vars
 ```shell
 cat <<EOF >Istio_Bookinfo_App.postman_environment.json
   {
@@ -1484,7 +1487,7 @@ cat <<EOF >Istio_Bookinfo_App.postman_environment.json
 EOF
 ```
 1. Import above 2 colllections into postman
-1. Run API calls to install:
+1. Run API methods as listed 
     1. Authenticate - POST
     1. Configs - POST
     1. Services - POST 
@@ -1494,7 +1497,7 @@ EOF
 
 ## Create Cluster(s)
 ### AWS
-1. Create AWS Profiles
+1. Create AWS Profiles if not done already
 ```shell
 cat <<EOF >~/.aws/config
   [sso-session ${AWS_SSO_SESSION}]
@@ -1586,14 +1589,13 @@ eksctl create cluster -f ./eks-cluster.yaml --profile $AWS_PROFILE
       --node-locations "$GKE_REGION-a","$GKE_REGION-b"
     ```
 
-### Export CLuster Context Names
+### Export Cluster Context Names
     ```shell
     export AWS_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl`
     export GKE_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke`
     ```
 
-### Create Webhook Sidecar Injector Template
-Now, you should have a NetFoundry Network with one Public Router and Webhook Identity to access the management api endpoint. If not go back to [Prerequisties](#prerequisties).
+### Create Webhook Sidecar Injector Template.
 ```shell
 cat <<EOF >sidecar-injection-webhook-spec.yaml
 ---
