@@ -69,7 +69,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		}
 
 		// kubernetes client
-		kClient := kclient()
+		kClient := kClient()
 
 		//Create secret in the same namespace
 		_, err = kClient.CoreV1().Secrets(pod.Namespace).Create(context.TODO(), &corev1.Secret{Data: map[string][]byte{sidecarIdentityName: secretData}, Type: "Opaque", ObjectMeta: metav1.ObjectMeta{Name: sidecarIdentityName}}, metav1.CreateOptions{})
@@ -213,7 +213,7 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 		zName, ok := hasContainer(pod.Spec.Containers, fmt.Sprintf("%s-%s", pod.Labels["app"], sidecarPrefix))
 		if ok {
 			// kubernetes client
-			kClient := kclient()
+			kClient := kClient()
 			secretData, err := kClient.CoreV1().Secrets(pod.Namespace).Get(context.TODO(), zName, metav1.GetOptions{})
 			if err != nil {
 				klog.Error(err)

@@ -10,27 +10,16 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// Config contains the server (the webhook) cert and key.
-type Config struct {
-	CertFile string
-	KeyFile  string
-}
-
 // Define sidecar config options
 type SidecarConfig struct {
 	Image string `json:"image"`
 	Name  string `json:"name"`
 }
 
-type TlsConfig struct {
-	CertFile string `json:"certFile"`
-	KeyFile  string `json:"keyFile"`
-}
-
-func configTLS(config Config) *tls.Config {
-	sCert, err := tls.LoadX509KeyPair(config.CertFile, config.KeyFile)
+func configTLS(cert, key []byte) *tls.Config {
+	sCert, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		klog.Fatal(err)
+		klog.Fatalf("Failed to load the 509x certs %v", err)
 	}
 	return &tls.Config{
 		Certificates: []tls.Certificate{sCert},
@@ -41,20 +30,20 @@ func configTLS(config Config) *tls.Config {
 
 func lookupEnvVars() {
 	// Environmental Variables to override the commandline inputs
-	value, ok = os.LookupEnv("TLS-CERT-FILE")
+	value, ok = os.LookupEnv("TLS-CERT")
 	if ok {
-		certFile = value
+		cert = []byte(value)
 	} else {
-		if len(certFile) == 0 {
-			klog.Infof(fmt.Sprintf("Webhook Server tls cert file is not set"))
+		if len(cert) == 0 {
+			klog.Infof(fmt.Sprintf("Webhook Server tls cert is not set"))
 		}
 	}
-	value, ok = os.LookupEnv("TLS-PRIVATE-KEY-FILE")
+	value, ok = os.LookupEnv("TLS-PRIVATE-KEY")
 	if ok {
-		keyFile = value
+		key = []byte(value)
 	} else {
-		if len(keyFile) == 0 {
-			klog.Infof(fmt.Sprintf("Webhook Server tls private key file is not set"))
+		if len(key) == 0 {
+			klog.Infof(fmt.Sprintf("Webhook Server tls private key is not set"))
 		}
 	}
 	value, ok = os.LookupEnv("PORT")

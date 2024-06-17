@@ -7,11 +7,11 @@ import (
 	"k8s.io/component-base/cli"
 )
 
-var Version = "0.2.0"
+var Version = "0.2.12"
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:     "app",
+		Use:     "ziti-agent-wh",
 		Version: Version,
 	}
 

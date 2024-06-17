@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -16,6 +17,8 @@ import (
 var (
 	certFile            string
 	keyFile             string
+	cert                []byte
+	key                 []byte
 	port                int
 	sidecarImage        string
 	sidecarImageVersion string
@@ -30,6 +33,7 @@ var (
 	zitiRoleKey         string
 	value               string
 	ok                  bool
+	err                 error
 	runtimeScheme       = runtime.NewScheme()
 )
 
@@ -184,18 +188,28 @@ func serveZitiTunnelSC(w http.ResponseWriter, r *http.Request) {
 
 func webhook(cmd *cobra.Command, args []string) {
 
-	config := Config{
-		CertFile: certFile,
-		KeyFile:  keyFile,
+	klog.Infof("Current version is %s", Version)
+
+	// process certs passed from the file through the comandline
+	if certFile != "" && keyFile != "" {
+		cert, err = os.ReadFile(certFile)
+		if err != nil {
+			klog.Info(err)
+		}
+
+		key, err = os.ReadFile(keyFile)
+		if err != nil {
+			klog.Info(err)
+		}
 	}
 
-	klog.Infof("Current version is %s", Version)
+	// load env vars to override the command line vars if any
 	lookupEnvVars()
 
 	http.HandleFunc("/ziti-tunnel", serveZitiTunnelSC)
 	server := &http.Server{
 		Addr:      fmt.Sprintf(":%d", port),
-		TLSConfig: configTLS(config),
+		TLSConfig: configTLS(cert, key),
 	}
 	err := server.ListenAndServeTLS("", "")
 	if err != nil {
