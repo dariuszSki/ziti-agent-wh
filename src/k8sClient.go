@@ -5,7 +5,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func kclient() *kubernetes.Clientset {
+func kClient() *kubernetes.Clientset {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {

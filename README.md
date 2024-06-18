@@ -16,7 +16,6 @@ data:
   address: "{https://your_fqdn:port}"
   zitiRoleKey: identity.openziti.io/role-attributes
   podSecurityContextOverride: "true"
-  clusterDnsSvcIp: 10.92.128.10
   SearchDomainList: ziti,sidecar.svc
 ```
 
@@ -27,7 +26,7 @@ kubectl -f sidecar-injection-webhook-spec.yaml --context $CLUSTER
 
 Once the webhook has been deployed successfully, one can enable injection per namespace by adding label `openziti/ziti-tunnel=enabled`
 ```bash
-kubectl label namespace {ns name} openziti/ziti-tunnel=enabled --context $CLUSTER3
+kubectl label namespace {ns name} openziti/ziti-tunnel=enabled --context $CLUSTER
 ```
 
 if resources are already deployed in this namespace, one can run this to restart all pods per deployment.
@@ -45,11 +44,26 @@ data:
 
 Example of key/value for the annotation. The annotation value must be a string, where roles are separated by comma if more than one needs to be configured
 ```bash
-kubectl annotate pod/adservice-86fc68848-dgtdz identity.openziti.io/role-attributes=sales,us-east
+kubectl annotate pod/adservice-86fc68848-dgtdz identity.openziti.io/role-attributes=sales,us-east --context $CLUSTER
 ```
 Deployment with immediate rollout restart
 ```bash
-kubectl patch deployment/adservice -p '{"spec":{"template":{"metadata":{"annotations":{"identity.openziti.io/role-attributes":"us-east"}}}}}'
+kubectl patch deployment/adservice -p '{"spec":{"template":{"metadata":{"annotations":{"identity.openziti.io/role-attributes":"us-east"}}}}}' --context $CLUSTER
 ```
 
+**Note: By default, the DNS Service ClusterIP is looked up. If one wants to configure a custom DNS server IP to overwritte the discovery, it is configurable.**
+
+```bash
+# This configmap option must be added
+data:
+  clusterDnsSvcIp: 1.1.1.1
+
+# This env var must be added as well to the webhook deployment spec
+env:
+  - name: CLUSTER_DNS_SVC_IP
+    valueFrom:
+      configMapKeyRef:
+        name: ziti-ctrl-cfg
+        key:  clusterDnsSvcIp
+```
 
