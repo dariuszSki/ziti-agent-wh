@@ -5,8 +5,8 @@
 
 ### Prerequisties:
 
-1. create NetFoundry Network and Ziti Components
-1. k8s cluster, but 2 if you want to see the distributed app scenario
+1. create [NetFoundry](https://staging-cloudziti.io/login) network and its components
+1. 2 k8s clusters
 1. download ziti binary for enrollment if don't have already
 1. [gcloud cli](https://cloud.google.com/sdk/docs/install)
 1. [eksctl cli](https://eksctl.io/installation/)
