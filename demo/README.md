@@ -54,7 +54,7 @@ export GKE_REGION=""
 
 --------------------
 --------------------
-## Note: One can basically copy the code directly to the linux terminal to create required files/resources.
+### Note: One can basically copy the code directly to the linux terminal to create required files/resources.
 --------------------
 --------------------
 
