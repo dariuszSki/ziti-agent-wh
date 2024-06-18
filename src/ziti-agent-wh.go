@@ -7,7 +7,7 @@ import (
 	"k8s.io/component-base/cli"
 )
 
-var Version = "0.2.12"
+var Version = "0.3.0"
 
 func main() {
 	rootCmd := &cobra.Command{
