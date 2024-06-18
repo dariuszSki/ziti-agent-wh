@@ -14,11 +14,15 @@
 1. [postman](https://learning.postman.com/docs/getting-started/installation/installation-and-updates/)
 
 ## NetFoundry Components
+
 ### Create Network and Public Router
+
 1. Login to  [NetFoundry Network](https://staging-cloudziti.io/) with access to Management Port
 1. Create Network
 1. Create Public Router with role attribute == `public`
+
 ### Create Admin User:
+
 1. Identities --> Create
 1. Fill in details and save (i.e. updb type)
 ![image](./images/CreateAdminIdentity.png)
@@ -27,6 +31,7 @@
 ```shell
 ziti edge enroll -j adminUser.jwt -p $CTRL_PASSWORD
 ```
+
 ### Export your NetFoundry Network and EKS/GKE Details
 ```shell
 export CTRL_ADDRESS=""
@@ -47,1458 +52,1464 @@ export GKE_SERVICE_ACCOUNT=""
 export GKE_REGION=""
 ```
 
+--------------------
+--------------------
+## Note: One can basically copy the code directly to the linux terminal to create required files/resources.
+--------------------
+--------------------
+
 ### Create Services, Service Policies, Edge Router Policy, Service Edge Router Policy
-1. Postman collection to create ziti components
+1. Copy the code into a terminal to create Postman collection file
 
-<details><summary>Code</summary><p>
+    <details><summary>Code</summary><p>
 
-```shell
-cat <<EOF >Istio_Bookinfo_App.postman_collection.json
-{
-  "info": {
-    "_postman_id": "843b4884-994c-4611-9db1-3c63ea78e904",
-    "name": "Istio Bookinfo App",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "3145648"
-  },
-  "item": [
+    ```shell
+    cat <<EOF >Istio_Bookinfo_App.postman_collection.json
     {
-      "name": "Services",
+      "info": {
+        "_postman_id": "843b4884-994c-4611-9db1-3c63ea78e904",
+        "name": "Istio Bookinfo App",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "3145648"
+      },
       "item": [
         {
-          "name": "List Services",
-          "event": [
+          "name": "Services",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "packages": {},
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{controller-api-endpoint}}/services?limit=500",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "services"
-              ],
-              "query": [
+              "name": "List Services",
+              "event": [
                 {
-                  "key": "limit",
-                  "value": "500"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service Details",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"details-service\",\n  \"roleAttributes\": [\n    \"details\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId1}}\",\n    \"{{interceptConfigId1}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/services/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "services",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service Productpage",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"productpage-service\",\n  \"roleAttributes\": [\n    \"productpage\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId2}}\",\n    \"{{interceptConfigId2}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/services/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "services",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service Ratings",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"ratings-service\",\n  \"roleAttributes\": [\n    \"ratings\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId3}}\",\n    \"{{interceptConfigId3}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"smartrouting\",\n  \"tags\": {}\n}"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/services/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "services",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service Reviews",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"reviews-service\",\n  \"roleAttributes\": [\n    \"reviews\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId4}}\",\n    \"{{interceptConfigId4}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/services/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "services",
-                ""
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Service-Policies",
-      "item": [
-        {
-          "name": "List Service-Policies",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies?limit=500",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies"
-              ],
-              "query": [
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
                 {
-                  "key": "limit",
-                  "value": "500"
+                  "listen": "prerequest",
+                  "script": {
+                    "packages": {},
+                    "type": "text/javascript"
+                  }
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy App User Dial",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
                 ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/services?limit=500",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "services"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "500"
+                    }
+                  ]
+                }
               },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"app-user-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#productpage\"],\n  \"identityRoles\":[\n    \"#users\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Productpage Bind",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
+              "response": []
             },
             {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"productpage-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#productpage\"],\n  \"identityRoles\":[\n    \"#productpage\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Productpage Dial",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"productpage-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#details\",\n    \"#reviews\"],\n  \"identityRoles\":[\n    \"#productpage\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Details Bind",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"details-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#details\"],\n  \"identityRoles\":[\n    \"#details\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Reviews Bind",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"reviews-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#reviews\"],\n  \"identityRoles\":[\n    \"#reviews\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Reviews Dial",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"reviews-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#ratings\"],\n  \"identityRoles\":[\n    \"#reviews\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Service-Policy Ratings Bind",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"ratings-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#ratings\"],\n  \"identityRoles\":[\n    \"#ratings\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-policies/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-policies",
-                ""
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Service-Edge-Router-Policies",
-      "item": [
-        {
-          "name": "List service-edge-router-policies",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-edge-router-policies",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-edge-router-policies"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create service-edge-router-policy",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"public-service-router-policy\",\n  \"serviceRoles\":[\n    \"#details\",\n    \"#productpage\",\n    \"#ratings\",\n    \"#reviews\"],\n  \"edgeRouterRoles\":[\n    \"#public\"],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/service-edge-router-policies",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "service-edge-router-policies"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Edge-Router-Policies",
-      "item": [
-        {
-          "name": "List edge-router-policies",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{controller-api-endpoint}}/edge-router-policies",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "edge-router-policies"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create edge-router-policy",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\":\"public-router-policy\",\n  \"edgeRouterRoles\":[\n    \"#public\"],\n  \"identityRoles\":[\n    \"#details\",\n    \"#users\",\n    \"#productpage\",\n    \"#ratings\",\n    \"#reviews\"],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/edge-router-policies",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "edge-router-policies"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Configs",
-      "item": [
-        {
-          "name": "List Configs",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs?limit=500",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs"
-              ],
-              "query": [
+              "name": "Create Service Details",
+              "event": [
                 {
-                  "key": "limit",
-                  "value": "500"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Details Host",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('hostConfigId1', jsonData.data.id)"
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"name\": \"details.host.v1\",\r\n    \"configTypeId\": \"NH5p4FpGR\",\r\n    \"data\": {\r\n        \"address\": \"127.0.0.1\",\r\n        \"allowedPortRanges\": [\r\n            {\r\n                \"high\": 9080,\r\n                \"low\": 9080\r\n            }\r\n        ],\r\n        \"allowedProtocols\": [\r\n            \"tcp\"\r\n        ],\r\n        \"forwardPort\": true,\r\n        \"forwardProtocol\": true,\r\n        \"listenOptions\": {\r\n            \"bindUsingEdgeIdentity\": false,\r\n            \"connectTimeout\": \"1s\",\r\n            \"connectTimeoutSeconds\": 1,\r\n            \"identity\": \"\",\r\n            \"precedence\": \"default\"\r\n        }\r\n    }\r\n}"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
               ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Details Intercept",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('interceptConfigId1', jsonData.data.id)"
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
                 ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"details-service\",\n  \"roleAttributes\": [\n    \"details\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId1}}\",\n    \"{{interceptConfigId1}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/services/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "services",
+                    ""
+                  ]
+                }
               },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"details.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"details\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+              "response": []
             },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Productpage Host",
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('hostConfigId2', jsonData.data.id)"
+              "name": "Create Service Productpage",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
                 ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"productpage-service\",\n  \"roleAttributes\": [\n    \"productpage\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId2}}\",\n    \"{{interceptConfigId2}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/services/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "services",
+                    ""
+                  ]
+                }
               },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"productpage.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+              "response": []
             },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Productpage Intercept",
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('interceptConfigId2', jsonData.data.id)"
+              "name": "Create Service Ratings",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
                 ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"ratings-service\",\n  \"roleAttributes\": [\n    \"ratings\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId3}}\",\n    \"{{interceptConfigId3}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"smartrouting\",\n  \"tags\": {}\n}"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/services/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "services",
+                    ""
+                  ]
+                }
               },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"productpage.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"productpage.ziti\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n"
+              "response": []
             },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Ratings Host",
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('hostConfigId3', jsonData.data.id)"
+              "name": "Create Service Reviews",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
                 ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"reviews-service\",\n  \"roleAttributes\": [\n    \"reviews\"\n  ],\n  \"configs\": [\n    \"{{hostConfigId4}}\",\n    \"{{interceptConfigId4}}\"\n  ],\n  \"encryptionRequired\": true,\n  \"terminatorStrategy\": \"random\",\n  \"tags\": {}\n}"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/services/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "services",
+                    ""
+                  ]
+                }
               },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"ratings.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Ratings Intercept",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('interceptConfigId3', jsonData.data.id)"
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"ratings.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"ratings\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Reviews Host",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('hostConfigId4', jsonData.data.id)"
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"reviews.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Post Config Reviews Intercept",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonData = pm.response.json();\r",
-                  "postman.setEnvironmentVariable('interceptConfigId4', jsonData.data.id)"
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "zt-session",
-                "value": "{{api_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\":\"reviews.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"reviews\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/configs/",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "configs",
-                ""
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Authenticate",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.globals.set(\"api_token\", pm.response.json().data.token);"
-            ],
-            "type": "text/javascript",
-            "packages": {}
-          }
-        },
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"username\": \"{{ctrl-username}}\",\r\n    \"password\": \"{{ctrl-password}}\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{controller-api-endpoint}}/authenticate?method=password",
-          "host": [
-            "{{controller-api-endpoint}}"
-          ],
-          "path": [
-            "authenticate"
-          ],
-          "query": [
-            {
-              "key": "method",
-              "value": "password"
+              "response": []
             }
           ]
+        },
+        {
+          "name": "Service-Policies",
+          "item": [
+            {
+              "name": "List Service-Policies",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies?limit=500",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "500"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy App User Dial",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"app-user-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#productpage\"],\n  \"identityRoles\":[\n    \"#users\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Productpage Bind",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"productpage-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#productpage\"],\n  \"identityRoles\":[\n    \"#productpage\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Productpage Dial",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"productpage-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#details\",\n    \"#reviews\"],\n  \"identityRoles\":[\n    \"#productpage\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Details Bind",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"details-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#details\"],\n  \"identityRoles\":[\n    \"#details\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Reviews Bind",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"reviews-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#reviews\"],\n  \"identityRoles\":[\n    \"#reviews\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Reviews Dial",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"reviews-service-policy-dial\",\n  \"type\":\"Dial\",\n  \"serviceRoles\":[\n    \"#ratings\"],\n  \"identityRoles\":[\n    \"#reviews\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Service-Policy Ratings Bind",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"ratings-service-policy-bind\",\n  \"type\":\"Bind\",\n  \"serviceRoles\":[\n    \"#ratings\"],\n  \"identityRoles\":[\n    \"#ratings\"],\n  \"postureCheckRoles\":[\n  ],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-policies/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-policies",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Service-Edge-Router-Policies",
+          "item": [
+            {
+              "name": "List service-edge-router-policies",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-edge-router-policies",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-edge-router-policies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create service-edge-router-policy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"public-service-router-policy\",\n  \"serviceRoles\":[\n    \"#details\",\n    \"#productpage\",\n    \"#ratings\",\n    \"#reviews\"],\n  \"edgeRouterRoles\":[\n    \"#public\"],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/service-edge-router-policies",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "service-edge-router-policies"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Edge-Router-Policies",
+          "item": [
+            {
+              "name": "List edge-router-policies",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/edge-router-policies",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "edge-router-policies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create edge-router-policy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\":\"public-router-policy\",\n  \"edgeRouterRoles\":[\n    \"#public\"],\n  \"identityRoles\":[\n    \"#details\",\n    \"#users\",\n    \"#productpage\",\n    \"#ratings\",\n    \"#reviews\"],\n  \"semantic\":\"AnyOf\",\n  \"tags\":{\n  }\n}\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/edge-router-policies",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "edge-router-policies"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Configs",
+          "item": [
+            {
+              "name": "List Configs",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs?limit=500",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "500"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Details Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId1', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"details.host.v1\",\r\n    \"configTypeId\": \"NH5p4FpGR\",\r\n    \"data\": {\r\n        \"address\": \"127.0.0.1\",\r\n        \"allowedPortRanges\": [\r\n            {\r\n                \"high\": 9080,\r\n                \"low\": 9080\r\n            }\r\n        ],\r\n        \"allowedProtocols\": [\r\n            \"tcp\"\r\n        ],\r\n        \"forwardPort\": true,\r\n        \"forwardProtocol\": true,\r\n        \"listenOptions\": {\r\n            \"bindUsingEdgeIdentity\": false,\r\n            \"connectTimeout\": \"1s\",\r\n            \"connectTimeoutSeconds\": 1,\r\n            \"identity\": \"\",\r\n            \"precedence\": \"default\"\r\n        }\r\n    }\r\n}"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Details Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId1', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"details.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"details\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Productpage Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId2', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"productpage.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Productpage Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId2', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"productpage.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"productpage.ziti\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Ratings Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId3', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"ratings.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Ratings Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId3', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"ratings.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"ratings\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Reviews Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId4', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"reviews.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Reviews Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId4', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"reviews.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"reviews\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Authenticate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.globals.set(\"api_token\", pm.response.json().data.token);"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"{{ctrl-username}}\",\r\n    \"password\": \"{{ctrl-password}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{controller-api-endpoint}}/authenticate?method=password",
+              "host": [
+                "{{controller-api-endpoint}}"
+              ],
+              "path": [
+                "authenticate"
+              ],
+              "query": [
+                {
+                  "key": "method",
+                  "value": "password"
+                }
+              ]
+            }
+          },
+          "response": []
         }
-      },
-      "response": []
+      ]
     }
-  ]
-}
-EOF
-```
+    EOF
+    ```
 
-</p></details>
+    </p></details>
 
-1. Postman collection to supply env vars
+1. Copy the code into a terminal to create Postman collection environmental variables file
 
-<details><summary>Code</summary><p>
+    <details><summary>Code</summary><p>
 
-```shell
-cat <<EOF >Istio_Bookinfo_App.postman_environment.json
-  {
-    "id": "8fd7318e-55d4-4814-b035-2b1c0d6edd28",
-    "name": "Istio Bookinfo App",
-    "values": [
+    ```shell
+    cat <<EOF >Istio_Bookinfo_App.postman_environment.json
       {
-        "key": "",
-        "value": "",
-        "enabled": false
-      },
-      {
-        "key": "controller-api-endpoint",
-        "value": "${CTRL_ADDRESS}/edge/management/v1/",
-        "enabled": true
-      },
-      {
-        "key": "ctrl-username",
-        "value": "${CTRL_USERNAME}",
-        "type": "secret",
-        "enabled": true
-      },
-      {
-        "key": "ctrl-password",
-        "value": "${CTRL_PASSWORD}",
-        "type": "secret",
-        "enabled": true
-      },
-      {
-        "key": "hostConfigId1",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "interceptConfigId1",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "hostConfigId2",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "interceptConfigId2",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "hostConfigId3                                                                   ",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "interceptConfigId3",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "hostConfigId4",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "interceptConfigId4",
-        "value": "",
-        "type": "default",
-        "enabled": true
-      },
-      {
-        "key": "hostConfigId3",
-        "value": "",
-        "type": "any",
-        "enabled": true
+        "id": "8fd7318e-55d4-4814-b035-2b1c0d6edd28",
+        "name": "Istio Bookinfo App",
+        "values": [
+          {
+            "key": "",
+            "value": "",
+            "enabled": false
+          },
+          {
+            "key": "controller-api-endpoint",
+            "value": "${CTRL_ADDRESS}/edge/management/v1/",
+            "enabled": true
+          },
+          {
+            "key": "ctrl-username",
+            "value": "${CTRL_USERNAME}",
+            "type": "secret",
+            "enabled": true
+          },
+          {
+            "key": "ctrl-password",
+            "value": "${CTRL_PASSWORD}",
+            "type": "secret",
+            "enabled": true
+          },
+          {
+            "key": "hostConfigId1",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "interceptConfigId1",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "hostConfigId2",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "interceptConfigId2",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "hostConfigId3                                                                   ",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "interceptConfigId3",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "hostConfigId4",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "interceptConfigId4",
+            "value": "",
+            "type": "default",
+            "enabled": true
+          },
+          {
+            "key": "hostConfigId3",
+            "value": "",
+            "type": "any",
+            "enabled": true
+          }
+        ],
+        "_postman_variable_scope": "environment",
+        "_postman_exported_at": "2024-06-15T01:59:34.264Z",
+        "_postman_exported_using": "Postman/11.2.1"
       }
-    ],
-    "_postman_variable_scope": "environment",
-    "_postman_exported_at": "2024-06-15T01:59:34.264Z",
-    "_postman_exported_using": "Postman/11.2.1"
-  }
-EOF
-```
+    EOF
+    ```
 
-</p></details>
+    </p></details>
 
-1. Import above 2 collections into postman
+1. Import above 2 collection files into postman
 1. Run API methods as listed 
     1. Authenticate - POST
     1. Configs - POST
@@ -1508,79 +1519,85 @@ EOF
     1. Service Edge Router Policy - POST
 
 ## Create Cluster(s)
+
 ### AWS
+
 1. Create AWS Profiles if not done already
 
-<details><summary>Code</summary><p>
+    <details><summary>Code</summary><p>
 
-```shell
-cat <<EOF >~/.aws/config
-  [sso-session ${AWS_SSO_SESSION}]
-  sso_start_url = ${AWS_SSO_START_URL}
-  sso_region = us-east-1
-  sso_registration_scopes = sso:account:access
-  [profile ${AWS_PROFILE}]
-  sso_session = ${AWS_SSO_SESSION}
-  sso_account_id = ${AWS_SSO_ACCOUNT_ID}
-  sso_role_name = Administrator
-  region = us-east-2
-  output = json
-  [default]
-  region = us-east-2
-EOF
-```
+    ```shell
+    cat <<EOF >~/.aws/config
+      [sso-session ${AWS_SSO_SESSION}]
+      sso_start_url = ${AWS_SSO_START_URL}
+      sso_region = us-east-1
+      sso_registration_scopes = sso:account:access
+      [profile ${AWS_PROFILE}]
+      sso_session = ${AWS_SSO_SESSION}
+      sso_account_id = ${AWS_SSO_ACCOUNT_ID}
+      sso_role_name = Administrator
+      region = us-east-2
+      output = json
+      [default]
+      region = us-east-2
+    EOF
+    ```
 
-</p></details>
+    </p></details>
 
 1. Login with sso
-```shell
-aws sso login --profile $AWS_PROFILE {--no-browser}(if can not launch browser from terminal)
-```
+    ```shell
+    aws sso login --profile $AWS_PROFILE
+    ```
+    if can not launch browser from terminal
+    ```shell
+    aws sso login --profile $AWS_PROFILE --no-browser
+    ```
 1. Create cluster config template
 
-<details><summary>Code</summary><p>
+    <details><summary>Code</summary><p>
 
-```shell
-cat <<EOF >eks-cluster.yaml
-apiVersion: eksctl.io/v1alpha5
-kind: ClusterConfig
-metadata:
-  name: ${CLUSTER_NAME}
-  region: ${AWS_REGION}
-  version: "1.28"
-managedNodeGroups:
-- name: ng-1
-  ami: ami-0ea4f7d20d3764afc #ubuntu image
-  amiFamily: Ubuntu2004
-  overrideBootstrapCommand: |
-      #!/bin/bash
-      /etc/eks/bootstrap.sh ${CLUSTER_NAME}
-    #ami: ami-09e2a99317de530c9 #amazon linux image
-  instanceType: t3.medium
-  iam:
-      withAddonPolicies:
-        ebs: true
-        fsx: true
-        efs: true
-  desiredCapacity: 2
-  privateNetworking: true
-  labels:
-    nodegroup-type: workloads
-  tags:
-    nodegroup-role: worker
-  ssh: # import default public key (~/.ssh/id_rsa.pub)
-    allow: true
-vpc:
-  cidr: 10.10.0.0/16
-  publicAccessCIDRs: []
-  # disable public access to endpoint and only allow private access
-  clusterEndpoints:
-    publicAccess: true
-    privateAccess: true
-EOF
-```
+    ```shell
+    cat <<EOF >eks-cluster.yaml
+    apiVersion: eksctl.io/v1alpha5
+    kind: ClusterConfig
+    metadata:
+      name: ${CLUSTER_NAME}
+      region: ${AWS_REGION}
+      version: "1.28"
+    managedNodeGroups:
+    - name: ng-1
+      ami: ami-0ea4f7d20d3764afc #ubuntu image
+      amiFamily: Ubuntu2004
+      overrideBootstrapCommand: |
+          #!/bin/bash
+          /etc/eks/bootstrap.sh ${CLUSTER_NAME}
+        #ami: ami-09e2a99317de530c9 #amazon linux image
+      instanceType: t3.medium
+      iam:
+          withAddonPolicies:
+            ebs: true
+            fsx: true
+            efs: true
+      desiredCapacity: 2
+      privateNetworking: true
+      labels:
+        nodegroup-type: workloads
+      tags:
+        nodegroup-role: worker
+      ssh: # import default public key (~/.ssh/id_rsa.pub)
+        allow: true
+    vpc:
+      cidr: 10.10.0.0/16
+      publicAccessCIDRs: []
+      # disable public access to endpoint and only allow private access
+      clusterEndpoints:
+        publicAccess: true
+        privateAccess: true
+    EOF
+    ```
 
-</p></details>
+    </p></details>
 
 1. Create cluster
 ```shell
@@ -1590,8 +1607,12 @@ eksctl create cluster -f ./eks-cluster.yaml --profile $AWS_PROFILE
 ### GCLOUD
 1. login
     ```shell
-    gcloud auth login {--no-browser}(if can not launch browser from terminal)
+    gcloud auth login
     ```
+    if can not launch browser from terminal
+    ```shell
+    gcloud auth login --no-browser
+    ````
 1. Create cluster
     ```shell
     gcloud container --project $GKE_PROJECT_NAME clusters create $CLUSTER_NAME \
@@ -1614,10 +1635,10 @@ eksctl create cluster -f ./eks-cluster.yaml --profile $AWS_PROFILE
     ```
 
 ### Export Cluster Context Names
-    ```shell
-    export AWS_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl`
-    export GKE_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke`
-    ```
+```shell
+export AWS_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl`
+export GKE_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke`
+```
 
 ### Create Webhook Sidecar Injector Template.
 
