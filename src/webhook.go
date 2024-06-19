@@ -190,7 +190,7 @@ func webhook(cmd *cobra.Command, args []string) {
 
 	klog.Infof("Current version is %s", Version)
 
-	// process certs passed from the file through the comandline
+	// process certs passed from the file through the command line
 	if certFile != "" && keyFile != "" {
 		cert, err = os.ReadFile(certFile)
 		if err != nil {

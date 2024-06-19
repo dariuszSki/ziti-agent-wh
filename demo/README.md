@@ -3,7 +3,7 @@
 ### Use Case Target
 ![image](./images/k8s-distributed-app.svg)
 
-### Prerequisties:
+### Prerequisities:
 1. [ziti cli](https://github.com/openziti/ziti/releases)
 1. [gcloud cli](https://cloud.google.com/sdk/docs/install)
 1. [eksctl cli](https://eksctl.io/installation/)
@@ -51,7 +51,7 @@ export GKE_REGION=""
 
 --------------------
 --------------------
-### Note: One can basically copy the code directly to the linux terminal to create required files/resources.
+### Note: Copy the code directly to the linux terminal to create required files/resources.
 --------------------
 --------------------
 
@@ -2103,6 +2103,7 @@ Look up pod names for Bookinfo App
 kubectl get pods -n test1 --context  $AWS_CLUSTER
 kubectl get pods -n test2 --context  $GKE_CLUSTER
 ```
+Bash script to simulate book reviews data filtered by the reviews pod name 
 ```shell
 for i in $(seq 1 20);
 do
