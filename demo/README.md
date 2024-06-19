@@ -17,7 +17,7 @@
 
 ### Create Network and Public Router
 
-1. Login to  [NetFoundry Network](https://staging-cloudziti.io/)
+1. Login to  [NetFoundry Console](https://staging-cloudziti.io/)
 1. Create Network
 1. Create Public Router with role attribute == `public`
 
