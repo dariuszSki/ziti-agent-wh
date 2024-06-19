@@ -4,10 +4,7 @@
 ![image](./images/k8s-distributed-app.svg)
 
 ### Prerequisties:
-
-1. create [NetFoundry](https://staging-cloudziti.io/login) network and its components
-1. 2 k8s clusters
-1. download ziti binary for enrollment if don't have already
+1. [ziti binary](https://github.com/openziti/ziti/releases) for enrollment if don't have already
 1. [gcloud cli](https://cloud.google.com/sdk/docs/install)
 1. [eksctl cli](https://eksctl.io/installation/)
 1. [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
