@@ -4,7 +4,7 @@
 ![image](./images/k8s-distributed-app.svg)
 
 ### Prerequisties:
-1. [ziti binary](https://github.com/openziti/ziti/releases) for enrollment if don't have already
+1. [ziti cli](https://github.com/openziti/ziti/releases)
 1. [gcloud cli](https://cloud.google.com/sdk/docs/install)
 1. [eksctl cli](https://eksctl.io/installation/)
 1. [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
