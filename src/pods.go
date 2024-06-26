@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -31,7 +33,16 @@ func zitiTunnel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	reviewResponse := admissionv1.AdmissionResponse{}
 	pod := corev1.Pod{}
 	oldPod := corev1.Pod{}
-	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Username: zitiCtrlUsername, Password: zitiCtrlPassword}
+
+	// parse ziti admin certs
+	zitiTlsCertificate, _ := tls.X509KeyPair(zitiAdminCert, zitiAdminKey)
+	parsedCert, err := x509.ParseCertificate(zitiTlsCertificate.Certificate[0])
+	if err != nil {
+		klog.Error(err)
+		return toV1AdmissionResponse(err)
+	}
+
+	zitiCfg := zitiEdge.Config{ApiEndpoint: zitiCtrlAddress, Cert: parsedCert, PrivateKey: zitiTlsCertificate.PrivateKey}
 
 	klog.Infof(fmt.Sprintf("Admission Request UID: %s", ar.Request.UID))
 	switch ar.Request.Operation {

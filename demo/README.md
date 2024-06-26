@@ -1,41 +1,48 @@
 ## Demo steps
 
 ### Use Case Target
+
+Cloud Native Aplications that are distributed over more than one region and are required to enforce granular access controls ensuring that only authorized users/microservices can interact with specific microservices at the pod level.
+
 ![image](./images/k8s-distributed-app.svg)
 
 ### Prerequisities:
+Following binaries to be installed in the environment. 
 1. [ziti cli](https://github.com/openziti/ziti/releases)
 1. [gcloud cli](https://cloud.google.com/sdk/docs/install)
+1. [gcloud auth plugin](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin)
 1. [eksctl cli](https://eksctl.io/installation/)
+1. [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions)
 1. [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
-1. [postman](https://learning.postman.com/docs/getting-started/installation/installation-and-updates/)
+1. [postman cli](https://learning.postman.com/docs/postman-cli/postman-cli-installation/)
+1. [jq](https://jqlang.github.io/jq/download/)
 
 ## NetFoundry Components
 
 ### Create Network and Public Router
 
-1. Login to  [NetFoundry Console](https://staging-cloudziti.io/)
+1. Login to  [NetFoundry Console](https://cloudziti.io/)
 1. Create Network
 1. Create Public Router with role attribute == `public`
 
 ### Create Admin User:
 
 1. Identities --> Create
-1. Fill in details and save (i.e. updb type)
-![image](./images/CreateAdminIdentity.png)
-1. Download jwt token and enroll it. Password to be provided when enrolling
-![image](./images/EnrollAdminIdentity.png)
-```shell
-ziti edge enroll -j adminUser.jwt -p $CTRL_PASSWORD
-```
+
+1. Fill in details and save (i.e. ott type)
+
+    ![image](./images/CreateAdminIdentity.png)
+
+1. Download jwt token and enroll it.
+
+    ![image](./images/EnrollAdminIdentity.png)
+    ```shell
+    ziti edge enroll -j adminUser.jwt -i adminUser.json
+    ```
 
 ### Export your NetFoundry Network and EKS/GKE Details
 ```shell
-export CTRL_ADDRESS=""
-export CTRL_USERNAME=""
-export CTRL_PASSWORD=""
-export CTRL_USERNAME_BASE64=""
-export CTRL_PASSWORD_BASE64=""
+export NF_IDENTITY_PATH="path/to/adminUser.json"
 export CLUSTER_NAME=""
 export AWS_PROFILE=""
 export AWS_SSO_ACCOUNT_ID=""
@@ -51,11 +58,27 @@ export GKE_REGION=""
 
 --------------------
 --------------------
-### Note: Copy the code directly to the linux terminal to create required files/resources.
+
+**IMPORTANT: Copy the code directly to the linux terminal to create required files/resources. In AWS, the VPC and network will be created part of `eksctl create cluster` command. Whereas in GKE, it is expected that VPC and network are already prebuilt. In AWS, one needs to have administrator permissions. If you already have clusters up, then you can skip on to [Export Cluster Context Names](#export-cluster-context-names) section.**
+
 --------------------
 --------------------
 
 ### Create Services, Service Policies, Edge Router Policy, Service Edge Router Policy
+1. Get ctrl-address/cert/ca/key files created.
+    ```shell
+    export CTRL_ADDRESS=$(sed "s/client/management/" <<< `jq -r .ztAPI $NF_IDENTITY_PATH`)
+    export NF_IDENTITY_CERT_PATH="nf_identity_cert.pem"
+    export NF_IDENTITY_KEY_PATH="nf_identity_key.pem"
+    export NF_IDENTITY_CA_PATH="nf_identity_ca.pem"
+    sed "s/pem://" <<< `jq -r .id.cert $NF_IDENTITY_PATH` > $NF_IDENTITY_CERT_PATH
+    sed "s/pem://" <<< `jq -r .id.key $NF_IDENTITY_PATH` > $NF_IDENTITY_KEY_PATH
+    sed "s/pem://" <<< `jq -r .id.ca $NF_IDENTITY_PATH` > $NF_IDENTITY_CA_PATH
+    export NF_IDENTITY_CERT=$(sed "s/pem://" <<< `jq .id.cert $NF_IDENTITY_PATH`)
+    export NF_IDENTITY_KEY=$(sed "s/pem://" <<< `jq .id.key $NF_IDENTITY_PATH`)
+    export NF_IDENTITY_CA=$(sed "s/pem://" <<< `jq .id.ca $NF_IDENTITY_PATH`)
+    ```
+
 1. Copy the code into a terminal to create Postman collection file
 
     <details><summary>Code</summary><p>
@@ -71,31 +94,79 @@ export GKE_REGION=""
       },
       "item": [
         {
-          "name": "Services",
+          "name": "Authenticate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.globals.set(\"api_token\", pm.response.json().data.token);"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{controller-api-endpoint}}/authenticate?method=cert",
+              "host": [
+                "{{controller-api-endpoint}}"
+              ],
+              "path": [
+                "authenticate"
+              ],
+              "query": [
+                {
+                  "key": "method",
+                  "value": "cert"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Configs",
           "item": [
             {
-              "name": "List Services",
+              "name": "Post Config Details Host",
               "event": [
                 {
                   "listen": "test",
                   "script": {
                     "exec": [
-                      ""
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId1', jsonData.data.id)"
                     ],
                     "type": "text/javascript",
                     "packages": {}
                   }
-                },
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "packages": {},
-                    "type": "text/javascript"
-                  }
                 }
               ],
               "request": {
-                "method": "GET",
+                "method": "POST",
                 "header": [
                   {
                     "key": "Content-Type",
@@ -106,24 +177,336 @@ export GKE_REGION=""
                     "value": "{{api_token}}"
                   }
                 ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"details.host.v1\",\r\n    \"configTypeId\": \"NH5p4FpGR\",\r\n    \"data\": {\r\n        \"address\": \"127.0.0.1\",\r\n        \"allowedPortRanges\": [\r\n            {\r\n                \"high\": 9080,\r\n                \"low\": 9080\r\n            }\r\n        ],\r\n        \"allowedProtocols\": [\r\n            \"tcp\"\r\n        ],\r\n        \"forwardPort\": true,\r\n        \"forwardProtocol\": true,\r\n        \"listenOptions\": {\r\n            \"bindUsingEdgeIdentity\": false,\r\n            \"connectTimeout\": \"1s\",\r\n            \"connectTimeoutSeconds\": 1,\r\n            \"identity\": \"\",\r\n            \"precedence\": \"default\"\r\n        }\r\n    }\r\n}"
+                },
                 "url": {
-                  "raw": "{{controller-api-endpoint}}/services?limit=500",
+                  "raw": "{{controller-api-endpoint}}/configs/",
                   "host": [
                     "{{controller-api-endpoint}}"
                   ],
                   "path": [
-                    "services"
-                  ],
-                  "query": [
-                    {
-                      "key": "limit",
-                      "value": "500"
-                    }
+                    "configs",
+                    ""
                   ]
                 }
               },
               "response": []
             },
+            {
+              "name": "Post Config Details Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId1', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"details.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"details\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Productpage Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId2', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"productpage.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Productpage Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId2', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"productpage.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"productpage.ziti\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Ratings Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId3', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"ratings.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Ratings Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId3', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"ratings.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"ratings\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Reviews Host",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('hostConfigId4', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"reviews.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Post Config Reviews Intercept",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const jsonData = pm.response.json();\r",
+                      "postman.setEnvironmentVariable('interceptConfigId4', jsonData.data.id)"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "zt-session",
+                    "value": "{{api_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\":\"reviews.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"reviews\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
+                },
+                "url": {
+                  "raw": "{{controller-api-endpoint}}/configs/",
+                  "host": [
+                    "{{controller-api-endpoint}}"
+                  ],
+                  "path": [
+                    "configs",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Services",
+          "item": [
             {
               "name": "Create Service Details",
               "event": [
@@ -341,50 +724,6 @@ export GKE_REGION=""
         {
           "name": "Service-Policies",
           "item": [
-            {
-              "name": "List Service-Policies",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      ""
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/service-policies?limit=500",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "service-policies"
-                  ],
-                  "query": [
-                    {
-                      "key": "limit",
-                      "value": "500"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
             {
               "name": "Create Service-Policy App User Dial",
               "event": [
@@ -762,44 +1101,6 @@ export GKE_REGION=""
           "name": "Service-Edge-Router-Policies",
           "item": [
             {
-              "name": "List service-edge-router-policies",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      ""
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/service-edge-router-policies",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "service-edge-router-policies"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "Create service-edge-router-policy",
               "event": [
                 {
@@ -857,44 +1158,6 @@ export GKE_REGION=""
           "name": "Edge-Router-Policies",
           "item": [
             {
-              "name": "List edge-router-policies",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      ""
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/edge-router-policies",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "edge-router-policies"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "Create edge-router-policy",
               "event": [
                 {
@@ -947,461 +1210,6 @@ export GKE_REGION=""
               "response": []
             }
           ]
-        },
-        {
-          "name": "Configs",
-          "item": [
-            {
-              "name": "List Configs",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      ""
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs?limit=500",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs"
-                  ],
-                  "query": [
-                    {
-                      "key": "limit",
-                      "value": "500"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Details Host",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('hostConfigId1', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n    \"name\": \"details.host.v1\",\r\n    \"configTypeId\": \"NH5p4FpGR\",\r\n    \"data\": {\r\n        \"address\": \"127.0.0.1\",\r\n        \"allowedPortRanges\": [\r\n            {\r\n                \"high\": 9080,\r\n                \"low\": 9080\r\n            }\r\n        ],\r\n        \"allowedProtocols\": [\r\n            \"tcp\"\r\n        ],\r\n        \"forwardPort\": true,\r\n        \"forwardProtocol\": true,\r\n        \"listenOptions\": {\r\n            \"bindUsingEdgeIdentity\": false,\r\n            \"connectTimeout\": \"1s\",\r\n            \"connectTimeoutSeconds\": 1,\r\n            \"identity\": \"\",\r\n            \"precedence\": \"default\"\r\n        }\r\n    }\r\n}"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Details Intercept",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('interceptConfigId1', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"details.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"details\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Productpage Host",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('hostConfigId2', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"productpage.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Productpage Intercept",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('interceptConfigId2', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"productpage.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"productpage.ziti\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Ratings Host",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('hostConfigId3', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"ratings.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Ratings Intercept",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('interceptConfigId3', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"ratings.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"ratings\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Reviews Host",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('hostConfigId4', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"reviews.host.v1\",\r\n  \"configTypeId\": \"NH5p4FpGR\",\r\n  \"data\":{\r\n    \"address\":\"127.0.0.1\",\r\n    \"allowedPortRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"allowedProtocols\":[\r\n      \"tcp\"],\r\n    \"forwardPort\":true,\r\n    \"forwardProtocol\":true,\r\n    \"listenOptions\":{\r\n      \"bindUsingEdgeIdentity\":false,\r\n      \"connectTimeout\":\"1s\",\r\n      \"connectTimeoutSeconds\":1,\r\n      \"identity\":\"\",\r\n      \"precedence\":\"default\"\r\n    }\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Post Config Reviews Intercept",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const jsonData = pm.response.json();\r",
-                      "postman.setEnvironmentVariable('interceptConfigId4', jsonData.data.id)"
-                    ],
-                    "type": "text/javascript",
-                    "packages": {}
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "zt-session",
-                    "value": "{{api_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\r\n  \"name\":\"reviews.intercept.v1\",\r\n  \"configTypeId\": \"g7cIWbcGg\",\r\n  \"data\":{\r\n    \"addresses\":[\r\n      \"reviews\"],\r\n    \"dialOptions\":{\r\n      \"identity\":\"\"\r\n    },\r\n    \"portRanges\":[\r\n      {\r\n        \"high\":9080,\r\n        \"low\":9080\r\n      }],\r\n    \"protocols\":[\r\n      \"tcp\"],\r\n    \"sourceIp\":\"\"\r\n  }\r\n}\r\n\r\n\r\n\r\n"
-                },
-                "url": {
-                  "raw": "{{controller-api-endpoint}}/configs/",
-                  "host": [
-                    "{{controller-api-endpoint}}"
-                  ],
-                  "path": [
-                    "configs",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            }
-          ]
-        },
-        {
-          "name": "Authenticate",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.globals.set(\"api_token\", pm.response.json().data.token);"
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            },
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  ""
-                ],
-                "type": "text/javascript",
-                "packages": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"username\": \"{{ctrl-username}}\",\r\n    \"password\": \"{{ctrl-password}}\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{controller-api-endpoint}}/authenticate?method=password",
-              "host": [
-                "{{controller-api-endpoint}}"
-              ],
-              "path": [
-                "authenticate"
-              ],
-              "query": [
-                {
-                  "key": "method",
-                  "value": "password"
-                }
-              ]
-            }
-          },
-          "response": []
         }
       ]
     }
@@ -1421,25 +1229,8 @@ export GKE_REGION=""
         "name": "Istio Bookinfo App",
         "values": [
           {
-            "key": "",
-            "value": "",
-            "enabled": false
-          },
-          {
             "key": "controller-api-endpoint",
-            "value": "${CTRL_ADDRESS}/edge/management/v1/",
-            "enabled": true
-          },
-          {
-            "key": "ctrl-username",
-            "value": "${CTRL_USERNAME}",
-            "type": "secret",
-            "enabled": true
-          },
-          {
-            "key": "ctrl-password",
-            "value": "${CTRL_PASSWORD}",
-            "type": "secret",
+            "value": "$CTRL_ADDRESS",
             "enabled": true
           },
           {
@@ -1489,12 +1280,6 @@ export GKE_REGION=""
             "value": "",
             "type": "default",
             "enabled": true
-          },
-          {
-            "key": "hostConfigId3",
-            "value": "",
-            "type": "any",
-            "enabled": true
           }
         ],
         "_postman_variable_scope": "environment",
@@ -1506,20 +1291,22 @@ export GKE_REGION=""
 
     </p></details>
 
-1. Import above 2 collection files into postman
-1. Run API methods as listed 
-    1. Authenticate - POST
-    1. Configs - POST
-    1. Services - POST 
-    1. Service Policies - POST
-    1. Edge Router Policy - POST
-    1. Service Edge Router Policy - POST
+1. Run postman cli to configure NetFoundry Components.
+    ```shell
+    postman collection run Istio_Bookinfo_App.postman_collection.json \
+            -e Istio_Bookinfo_App.postman_environment.json \
+            --ssl-client-cert $NF_IDENTITY_CERT_PATH \
+            --ssl-client-key $NF_IDENTITY_KEY_PATH \
+            --ssl-extra-ca-certs $NF_IDENTITY_CA_PATH
+    ```
 
 ## Create Cluster(s)
 
 ### AWS
 
 1. Create AWS Profiles if not done already
+    
+    ***Note: May have to create ~/.aws folder first.***
 
     <details><summary>Code</summary><p>
 
@@ -1564,12 +1351,6 @@ export GKE_REGION=""
       version: "1.28"
     managedNodeGroups:
     - name: ng-1
-      ami: ami-0ea4f7d20d3764afc #ubuntu image
-      amiFamily: Ubuntu2004
-      overrideBootstrapCommand: |
-          #!/bin/bash
-          /etc/eks/bootstrap.sh ${CLUSTER_NAME}
-        #ami: ami-09e2a99317de530c9 #amazon linux image
       instanceType: t3.medium
       iam:
           withAddonPolicies:
@@ -1618,20 +1399,20 @@ eksctl create cluster -f ./eks-cluster.yaml --profile $AWS_PROFILE
       --image-type "COS_CONTAINERD" --disk-type "pd-balanced" \
       --disk-size "100" --metadata disable-legacy-endpoints=true \
       --service-account "$GKE_SERVICE_ACCOUNT@$GKE_PROJECT_NAME.iam.gserviceaccount.com" \
-      --num-nodes "1" --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM --enable-ip-alias \
+      --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM --enable-ip-alias \
       --network "projects/$GKE_PROJECT_NAME/global/networks/$GKE_NETWORK_NAME" \
-      --subnetwork "projects/$GKE_PROJECT_NAME/regions/us-central1/subnetworks/$GKE_SUBNETWORK_NAME" \
+      --subnetwork "projects/$GKE_PROJECT_NAME/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
       --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
       --default-max-pods-per-node "110" --security-posture=standard \
       --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
       --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver \
       --enable-autoupgrade --enable-autorepair --max-surge-upgrade 1 \
       --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED \
-      --enable-managed-prometheus --enable-shielded-nodes \
-      --node-locations "$GKE_REGION-a","$GKE_REGION-b"
+      --enable-managed-prometheus --enable-shielded-nodes --num-nodes "1"
     ```
 
 ### Export Cluster Context Names
+If you have your own clusters, then you need to replace the dynamic cluster name search to actual cluster names, i.e. `export AWS_CLUSTER={your cluster namne}`, etc.
 ```shell
 export AWS_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl`
 export GKE_CLUSTER=`kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke`
@@ -1681,7 +1462,7 @@ spec:
     spec:
       containers:
       - name: ziti-sidecar-injector
-        image: docker.io/elblag91/ziti-agent-wh:0.3.0
+        image: docker.io/elblag91/ziti-agent-wh:0.3.3
         imagePullPolicy: Always
         ports:
         - containerPort: 9443
@@ -1697,16 +1478,16 @@ spec:
               configMapKeyRef:
                 name: ziti-ctrl-cfg
                 key:  address
-          - name: ZITI_CTRL_USERNAME
+          - name: ZITI_CTRL_ADMIN_CERT
             valueFrom:
               secretKeyRef:
-                name: ziti-ctrl-creds
-                key:  username
-          - name: ZITI_CTRL_PASSWORD
+                name: ziti-ctrl-tls
+                key:  tls.crt
+          - name: ZITI_CTRL_ADMIN_KEY
             valueFrom:
               secretKeyRef:
-                name: ziti-ctrl-creds
-                key:  password
+                name: ziti-ctrl-tls
+                key:  tls.key
           - name: ZITI_ROLE_KEY
             valueFrom:
               configMapKeyRef:
@@ -1781,12 +1562,13 @@ subjects:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ziti-ctrl-creds
+  name: ziti-ctrl-tls
   namespace: ziti
-type: Opaque
-data:
-  username: $CTRL_USERNAME_BASE64
-  password: $CTRL_PASSWORD_BASE64
+type: kubernetes.io/tls
+stringData:
+  tls.crt: $NF_IDENTITY_CERT
+  tls.key: $NF_IDENTITY_KEY
+  tls.ca:  $NF_IDENTITY_CA
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -2073,7 +1855,7 @@ kubectl apply -f sidecar-injection-webhook-spec.yaml --context $AWS_CLUSTER
 ```
 ### Watch logs from the webhook
 ```shell
-kubectl logs `kubectl get pods -n ziti --context  $AWS_CLUSTER -o name` -n ziti --context  $AWS_CLUSTER -f
+kubectl logs `kubectl get pods -n ziti --context  $AWS_CLUSTER -o name | grep injector-wh` -n ziti --context  $AWS_CLUSTER -f
 ```
 ### Deploy Bookinfo to EKS
 ```shell 
@@ -2088,7 +1870,7 @@ kubectl apply -f sidecar-injection-webhook-spec.yaml --context $GKE_CLUSTER
 ```
 ### Watch logs from the webhook
 ```shell
-kubectl logs `kubectl get pods -n ziti --context  $GKE_CLUSTER -o name` -n ziti --context  $GKE_CLUSTER -f
+kubectl logs `kubectl get pods -n ziti --context  $GKE_CLUSTER -o name | grep injector-wh` -n ziti --context  $GKE_CLUSTER -f
 ```
 ### Deploy Bookinfo to GKE
 ```shell
