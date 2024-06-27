@@ -37,10 +37,26 @@ Following binaries to be installed in the environment.
 
     ![image](./images/EnrollAdminIdentity.png)
     ```shell
-    ziti edge enroll -j adminUser.jwt -i adminUser.json
+    ziti edge enroll -j adminUser.jwt -o adminUser.json
     ```
 
+### Create Test User:
+
+1. Repeat the same steps but dont enable `IS Admin` option
+
+    ![image](./images/CreateTestIdentity.png)
+
+    If using ziti-edge-tunnel - [Linux based Installations](https://openziti.io/docs/reference/tunnelers/linux/)
+    ```shell
+    sudo ziti-edge-tunnel add --jwt "$(< ./testUser.jwt)" --identity testUser
+    ```
+    if using Windows/Mac App - [WinOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling), [MacOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling)
+
+
 ### Export your NetFoundry Network and EKS/GKE Details
+
+**Note: gke-service-account is the part before @ and can be found under IAM-->Permissions, i.e. `{GKE_SERVICE_ACCOUNT}@{GKE_PROJECT_NAME}.iam.gserviceaccount.com`. SUB NETWORK is subnet name and must be in the same region as indicated in GKE_REGION**
+
 ```shell
 export NF_IDENTITY_PATH="path/to/adminUser.json"
 export CLUSTER_NAME=""
@@ -1363,8 +1379,6 @@ export GKE_REGION=""
         nodegroup-type: workloads
       tags:
         nodegroup-role: worker
-      ssh: # import default public key (~/.ssh/id_rsa.pub)
-        allow: true
     vpc:
       cidr: 10.10.0.0/16
       publicAccessCIDRs: []
@@ -1879,6 +1893,10 @@ kubectl label namespace test2 openziti/ziti-tunnel=enabled --context $GKE_CLUSTE
 kubectl apply -f bookinfo-app.yaml --context $GKE_CLUSTER -n test2
 ```
 
+### Check Identities Status
+Identities should be all green as shown in this screen shot.
+![image](./images/identitiesStatus.png)
+
 ### App Test and Verification of Access
 Look up pod names for Bookinfo App
 ```shell
@@ -1892,12 +1910,63 @@ do
     curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews
 done
 ```
+### Results
+Pods List
+```shell
+kubectl get pods -n test1 --context  $AWS_CLUSTER
+kubectl get pods -n test2 --context  $GKE_CLUSTER
+NAME                             READY   STATUS    RESTARTS   AGE
+details-v1-cf74bb974-z8h6j       2/2     Running   0          9m23s
+productpage-v1-87d54dd59-dl2fl   2/2     Running   0          9m5s
+ratings-v1-7c4bbf97db-9vhc4      2/2     Running   0          9m18s
+reviews-v1-5fd6d4f8f8-92rg4      2/2     Running   0          9m13s
+reviews-v2-6f9b55c5db-r6ncv      2/2     Running   0          9m13s
+reviews-v3-7d99fd7978-t7rnv      2/2     Running   0          9m13s
+NAME                             READY   STATUS    RESTARTS   AGE
+details-v1-cf74bb974-5l65k       2/2     Running   0          8m44s
+productpage-v1-87d54dd59-hvvpn   2/2     Running   0          8m43s
+ratings-v1-7c4bbf97db-2m9dk      2/2     Running   0          8m58s
+reviews-v1-5fd6d4f8f8-nd9f4      2/2     Running   0          8m57s
+reviews-v2-6f9b55c5db-h2gv7      2/2     Running   0          8m51s
+reviews-v3-7d99fd7978-hjq4l      2/2     Running   0          8m50s
+```
+
+Script Output
+
+All Reviews Pods should be hit at least once
+```shell
+for i in $(seq 1 20);
+do
+    curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews
+done
+        <u>reviews-v1-5fd6d4f8f8-nd9f4</u>
+        <u>reviews-v2-6f9b55c5db-h2gv7</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v1-5fd6d4f8f8-nd9f4</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v2-6f9b55c5db-r6ncv</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v1-5fd6d4f8f8-92rg4</u>
+        <u>reviews-v1-5fd6d4f8f8-nd9f4</u>
+        <u>reviews-v3-7d99fd7978-hjq4l</u>
+        <u>reviews-v3-7d99fd7978-t7rnv</u>
+        <u>reviews-v2-6f9b55c5db-r6ncv</u>
+        <u>reviews-v3-7d99fd7978-t7rnv</u>
+        <u>reviews-v1-5fd6d4f8f8-nd9f4</u>
+        <u>reviews-v1-5fd6d4f8f8-92rg4</u>
+        <u>reviews-v1-5fd6d4f8f8-92rg4</u>
+        <u>reviews-v1-5fd6d4f8f8-nd9f4</u>
+        <u>reviews-v1-5fd6d4f8f8-92rg4</u>
+```
 
 ### Delete App and clean up of identities
 ```shell
 kubectl delete -f bookinfo-app.yaml --context $AWS_CLUSTER -n test1
 kubectl delete -f bookinfo-app.yaml --context $GKE_CLUSTER -n test2
 ```
+![image](./images/identitiesStatusDelete.png)
 
 ### Delete Clusters
 ```shell
