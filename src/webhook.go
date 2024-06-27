@@ -15,26 +15,28 @@ import (
 )
 
 var (
-	certFile            string
-	keyFile             string
-	cert                []byte
-	key                 []byte
-	port                int
-	sidecarImage        string
-	sidecarImageVersion string
-	sidecarPrefix       string
-	zitiCtrlAddress     string
-	zitiCtrlUsername    string
-	zitiCtrlPassword    string
-	podSecurityOverride bool
-	clusterDnsServiceIP string
-	searchDomainList    []string
-	zitiIdentityRoles   []string
-	zitiRoleKey         string
-	value               string
-	ok                  bool
-	err                 error
-	runtimeScheme       = runtime.NewScheme()
+	certFile               string
+	keyFile                string
+	cert                   []byte
+	key                    []byte
+	zitiAdminCert          []byte
+	zitiAdminKey           []byte
+	port                   int
+	sidecarImage           string
+	sidecarImageVersion    string
+	sidecarPrefix          string
+	zitiCtrlAddress        string
+	zitiCtrlClientCertFile string
+	zitiCtrlClientKeyFile  string
+	podSecurityOverride    bool
+	clusterDnsServiceIP    string
+	searchDomainList       []string
+	zitiIdentityRoles      []string
+	zitiRoleKey            string
+	value                  string
+	ok                     bool
+	err                    error
+	runtimeScheme          = runtime.NewScheme()
 )
 
 var CmdWebhook = &cobra.Command{
@@ -62,9 +64,9 @@ func init() {
 		"ContainerName to be used for the injected sidecar")
 	CmdWebhook.Flags().StringVar(&zitiCtrlAddress, "ziti-ctrl-addr", "",
 		"Ziti Controller IP Address / FQDN")
-	CmdWebhook.Flags().StringVar(&zitiCtrlUsername, "ziti-ctrl-un", "",
+	CmdWebhook.Flags().StringVar(&zitiCtrlClientCertFile, "ziti-ctrl-client-cert-file", "",
 		"Ziti Controller Username")
-	CmdWebhook.Flags().StringVar(&zitiCtrlPassword, "ziti-ctrl-pw", "",
+	CmdWebhook.Flags().StringVar(&zitiCtrlClientKeyFile, "ziti-ctrl-client-key-file", "",
 		"Ziti Controller Password")
 	CmdWebhook.Flags().BoolVar(&podSecurityOverride, "pod-sc-override", false,
 		"Override the security context at pod level, i.e. runAsNonRoot: false")
@@ -198,6 +200,19 @@ func webhook(cmd *cobra.Command, args []string) {
 		}
 
 		key, err = os.ReadFile(keyFile)
+		if err != nil {
+			klog.Info(err)
+		}
+	}
+
+	// process ziti admin user certs passed from the file through the command line
+	if zitiCtrlClientCertFile != "" && zitiCtrlClientKeyFile != "" {
+		zitiAdminCert, err = os.ReadFile(zitiCtrlClientCertFile)
+		if err != nil {
+			klog.Info(err)
+		}
+
+		zitiAdminKey, err = os.ReadFile(zitiCtrlClientKeyFile)
 		if err != nil {
 			klog.Info(err)
 		}

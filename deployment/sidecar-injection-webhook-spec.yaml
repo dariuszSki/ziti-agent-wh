@@ -77,7 +77,7 @@ spec:
     spec:
       containers:
       - name: ziti-sidecar-injector
-        image: docker.io/elblag91/ziti-agent-wh:0.3.0
+        image: docker.io/elblag91/ziti-agent-wh:0.3.1
         imagePullPolicy: Always
         ports:
         - containerPort: 9443
@@ -103,16 +103,16 @@ spec:
               configMapKeyRef:
                 name: ziti-ctrl-cfg
                 key:  address
-          - name: ZITI_CTRL_USERNAME
+          - name: ZITI_CTRL_ADMIN_CERT
             valueFrom:
               secretKeyRef:
-                name: ziti-ctrl-creds
-                key:  username
-          - name: ZITI_CTRL_PASSWORD
+                name: ziti-ctrl-tls
+                key:  tls.crt
+          - name: ZITI_CTRL_ADMIN_KEY
             valueFrom:
               secretKeyRef:
-                name: ziti-ctrl-creds
-                key:  password
+                name: ziti-ctrl-tls
+                key:  tls.key
           - name: ZITI_ROLE_KEY
             valueFrom:
               configMapKeyRef:
@@ -191,12 +191,13 @@ subjects:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ziti-ctrl-creds
+  name: ziti-ctrl-tls
   namespace: test-ziti-sidecar
-type: Opaque
-data:
-  username: "{base64|your_value}"
-  password: "{base64|your_value}"
+type: kubernetes.io/tls
+stringData:
+  tls.crt: $NF_ADMIN_IDENTITY_CERT
+  tls.key: $NF_ADMIN_IDENTITY_KEY
+  tls.ca:  $NF_ADMIN_IDENTITY_CA
 
 ---
 apiVersion: v1

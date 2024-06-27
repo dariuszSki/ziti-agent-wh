@@ -86,20 +86,20 @@ func lookupEnvVars() {
 			klog.Infof(fmt.Sprintf("Ziti Controller Address is not set"))
 		}
 	}
-	value, ok = os.LookupEnv("ZITI_CTRL_USERNAME")
+	value, ok = os.LookupEnv("ZITI_CTRL_ADMIN_CERT")
 	if ok {
-		zitiCtrlUsername = value
+		zitiAdminCert = []byte(value)
 	} else {
-		if len(zitiCtrlUsername) == 0 {
-			klog.Infof(fmt.Sprintf("Ziti Controller Username is not set"))
+		if len(zitiAdminCert) == 0 {
+			klog.Infof(fmt.Sprintf("Ziti Controller Admin Client Cert is not set"))
 		}
 	}
-	value, ok = os.LookupEnv("ZITI_CTRL_PASSWORD")
+	value, ok = os.LookupEnv("ZITI_CTRL_ADMIN_KEY")
 	if ok {
-		zitiCtrlPassword = value
+		zitiAdminKey = []byte(value)
 	} else {
-		if len(zitiCtrlPassword) == 0 {
-			klog.Infof(fmt.Sprintf("Ziti Controller Password is not set"))
+		if len(zitiAdminKey) == 0 {
+			klog.Infof(fmt.Sprintf("Ziti Controller Admin Private Key is not set"))
 		}
 	}
 	value, ok = os.LookupEnv("POD_SECURITY_CONTEXT_OVERRIDE")
