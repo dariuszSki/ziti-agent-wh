@@ -50,14 +50,14 @@ Following binaries to be installed in the environment.
     ```shell
     sudo ziti-edge-tunnel add --jwt "$(< ./testUser.jwt)" --identity testUser
     ```
-    if using Windows/Mac App - [WinOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling), [MacOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling)
+    If using Windows/Mac App - [WinOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling), [MacOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling)
 
 
 ### Export NetFoundry Network and EKS/GKE Details
 
 --------------------
 
-**IMPORTANT: Copy the code directly to the linux terminal to create required files/resources. In AWS, the VPC and network will be created part of `eksctl create cluster` command. Whereas in GKE, it is expected that VPC and network are already prebuilt. In AWS, one needs to have administrator permissions. The gke-service-account is the part before @ and can be found under IAM-->Permissions, i.e. `{GKE_SERVICE_ACCOUNT}@{GKE_PROJECT_NAME}.iam.gserviceaccount.com`. The subnetwork is the subnet name and must be in the same region as indicated in GKE_REGION. If you already have clusters up, then you can skip on to [Export Cluster Context Names](#export-cluster-context-names) section**
+**IMPORTANT: Copy the code directly to the linux terminal to create required files/resources. In AWS, the VPC and network will be created part of `eksctl create cluster` command and one needs to have administrator permissions. Whereas in GKE, it is expected that VPC and network are already prebuilt. The service account is the part before @ and can be found under IAM-->Permissions, i.e. `{GKE_SERVICE_ACCOUNT}@{GKE_PROJECT_NAME}.iam.gserviceaccount.com`. The subnetwork is the subnet name and must be in the same region as indicated in GKE_REGION. If you already have clusters up, then you can skip to [Export Cluster Context Names](#export-cluster-context-names) section**
 
 --------------------
 
@@ -1341,11 +1341,11 @@ export GKE_REGION=""
 
     </p></details>
 
-1. Login with sso
+1. Login with SSO
     ```shell
     aws sso login --profile $AWS_PROFILE
     ```
-    if can not launch browser from terminal
+    If can not launch browser from terminal
     ```shell
     aws sso login --profile $AWS_PROFILE --no-browser
     ```
@@ -1393,11 +1393,11 @@ eksctl create cluster -f ./eks-cluster.yaml --profile $AWS_PROFILE
 ```
 
 ### GCLOUD
-1. login
+1. Login
     ```shell
     gcloud auth login
     ```
-    if can not launch browser from terminal
+    If can not launch browser from terminal
     ```shell
     gcloud auth login --no-browser
     ````
