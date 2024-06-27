@@ -53,9 +53,13 @@ Following binaries to be installed in the environment.
     if using Windows/Mac App - [WinOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling), [MacOS Enrolling](https://openziti.io/docs/reference/tunnelers/windows#enrolling)
 
 
-### Export your NetFoundry Network and EKS/GKE Details
+### Export NetFoundry Network and EKS/GKE Details
 
-**Note: gke-service-account is the part before @ and can be found under IAM-->Permissions, i.e. `{GKE_SERVICE_ACCOUNT}@{GKE_PROJECT_NAME}.iam.gserviceaccount.com`. SUB NETWORK is subnet name and must be in the same region as indicated in GKE_REGION**
+--------------------
+
+**IMPORTANT: Copy the code directly to the linux terminal to create required files/resources. In AWS, the VPC and network will be created part of `eksctl create cluster` command. Whereas in GKE, it is expected that VPC and network are already prebuilt. In AWS, one needs to have administrator permissions. The gke-service-account is the part before @ and can be found under IAM-->Permissions, i.e. `{GKE_SERVICE_ACCOUNT}@{GKE_PROJECT_NAME}.iam.gserviceaccount.com`. The subnetwork is the subnet name and must be in the same region as indicated in GKE_REGION. If you already have clusters up, then you can skip on to [Export Cluster Context Names](#export-cluster-context-names) section**
+
+--------------------
 
 ```shell
 export NF_IDENTITY_PATH="path/to/adminUser.json"
@@ -71,14 +75,6 @@ export GKE_SUBNETWORK_NAME=""
 export GKE_SERVICE_ACCOUNT=""
 export GKE_REGION=""
 ```
-
---------------------
---------------------
-
-**IMPORTANT: Copy the code directly to the linux terminal to create required files/resources. In AWS, the VPC and network will be created part of `eksctl create cluster` command. Whereas in GKE, it is expected that VPC and network are already prebuilt. In AWS, one needs to have administrator permissions. If you already have clusters up, then you can skip on to [Export Cluster Context Names](#export-cluster-context-names) section.**
-
---------------------
---------------------
 
 ### Create Services, Service Policies, Edge Router Policy, Service Edge Router Policy
 1. Get ctrl-address/cert/ca/key files created.
