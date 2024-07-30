@@ -78,19 +78,15 @@ jobs:
         run: postman --version
         shell: bash
       - 
-        name: install-ubunut-packages
+        name: install-jq-package
         run: |
-          curl -sSLf https://get.openziti.io/tun/package-repos.gpg | sudo gpg --dearmor --output /usr/share/keyrings/openziti.gpg
-          sudo chmod a+r /usr/share/keyrings/openziti.gpg
-          echo "deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable $(lsb_release -c -s) main" \
-          | sudo tee /etc/apt/sources.list.d/openziti.list >/dev/null
           sudo apt-get update
-          sudo apt-get -y install jq ziti ziti-edge-tunnel
-          ziti -v
-          ziti-edge-tunnel -v
-
-
-      
+          sudo apt-get --yes install jq 
+      -
+        name: install-zet-package
+        run: |
+          curl -sSLf https://get.openziti.io/tun/scripts/install-ubuntu.bash | bash
+          sudo systemctl enable --now ziti-edge-tunnel.service
       # - 
       #   name: update-kube-config
       #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
