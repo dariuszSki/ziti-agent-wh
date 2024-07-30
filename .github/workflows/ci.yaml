@@ -61,22 +61,45 @@ jobs:
         run: kubectl version --client=true
         shell: bash
       -
-        id: install-aws-cli
+        name: install-aws-cli
         uses: unfor19/install-aws-cli-action@v1
         with:
           version: 2                         
           verbose: false                     
-          arch: amd64                        
-          bindir: "/usr/local/bin"           
-          installrootdir: "/usr/local"  
+          arch: amd64                         
       -
         run: aws --version
         shell: bash
+      - 
+        name: install-postman-cli
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+      -
+        run: postman --version
+        shell: bash
+      - 
+        name: install-ubunut-packages
+        run: |
+          curl -sSLf https://get.openziti.io/tun/package-repos.gpg | sudo gpg --dearmor --output /usr/share/keyrings/openziti.gpg
+          sudo chmod a+r /usr/share/keyrings/openziti.gpg
+          sudo tee /etc/apt/sources.list.d/openziti-release.list >/dev/null <<EOF
+          deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable debian main
+          EOF
+          sudo apt-get update
+          sudo apt-get -y install jq openziti ziti-edge-tunnel
+          ziti -v
+          ziti-edge-tunnel -v
+
+
+      
       # - 
       #   name: update-kube-config
       #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
           
-
+      # - name: deploy-webhook-2-clusters
+      #   run: |
+      #     kubectl apply -f 
+      #     kubectl apply -f 
 
     # steps:
     # - uses: actions/checkout@v4
