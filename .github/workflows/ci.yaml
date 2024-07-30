@@ -82,9 +82,8 @@ jobs:
         run: |
           curl -sSLf https://get.openziti.io/tun/package-repos.gpg | sudo gpg --dearmor --output /usr/share/keyrings/openziti.gpg
           sudo chmod a+r /usr/share/keyrings/openziti.gpg
-          sudo tee /etc/apt/sources.list.d/openziti-release.list >/dev/null <<EOF
-          deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable debian main
-          EOF
+          echo "deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable $(lsb_release -c -s) main" \
+          | sudo tee /etc/apt/sources.list.d/openziti.list >/dev/null
           sudo apt-get update
           sudo apt-get -y install jq openziti ziti-edge-tunnel
           ziti -v
