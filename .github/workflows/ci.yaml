@@ -69,7 +69,8 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           version: latest   
-          install_components: gke-gcloud-auth-plugin              
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}  
+          install_components: gke-gcloud-auth-plugin         
       - 
         name: install-postman-jq-zet-cli
         run: |
@@ -81,7 +82,7 @@ jobs:
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin
           postman --version
-          ziti-edge-tunnel --version
+          ziti-edge-tunnel version
           eksctl version
           aws --version
           kubectl version --client=true
