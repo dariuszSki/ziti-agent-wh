@@ -54,10 +54,16 @@ jobs:
           audience: sts.amazonaws.com
       -  
         name: Authenticate to Google Cloud
-        uses: 'google-github-actions/auth@v0.4.0'
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCLOUD_WL_ID_FOR_GITHUB }}
           service_account: ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }}
+      -
+        name: install-gcloud-cli
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest
+          install_components: gke-gcloud-auth-plugin
       -
         name: install-kubectl
         uses: alexellis/arkade-get@master
@@ -70,12 +76,6 @@ jobs:
           version: 2                         
           verbose: false                     
           arch: amd64
-      -
-        name: install-gcloud-cli
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          version: latest
-          install_components: gke-gcloud-auth-plugin         
       - 
         name: install-postman-jq-zet-cli
         run: |
