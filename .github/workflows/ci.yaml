@@ -58,6 +58,7 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCLOUD_WL_ID_FOR_GITHUB }}
           service_account: ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }}
+          audience: ${{ secrets.GCLOUD_WL_ID_FOR_GITHUB }}
       -
         name: install-gcloud-cli
         uses: google-github-actions/setup-gcloud@v2
