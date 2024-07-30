@@ -45,13 +45,19 @@ jobs:
 
     steps: 
       - 
-        name: Configure AWS credentials from Cloud Engineering Account
+        name: Authenticate to AWS Cloud
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.AWS_ROLE_FOR_GITHUB }}
           role-session-name: GitHubActions
           audience: sts.amazonaws.com
+      -  
+        name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v0.4.0'
+        with:
+          workload_identity_provider: ${{ secrets.GCLOUD_WL_ID_FOR_GITHUB }}
+          service_account: ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }}
       -
         name: install-kubectl
         uses: alexellis/arkade-get@master
@@ -68,8 +74,7 @@ jobs:
         name: install-gcloud-cli
         uses: google-github-actions/setup-gcloud@v2
         with:
-          version: latest   
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}  
+          version: latest
           install_components: gke-gcloud-auth-plugin         
       - 
         name: install-postman-jq-zet-cli
@@ -97,10 +102,5 @@ jobs:
       #     kubectl apply -f 
 
     # steps:
-    # - uses: actions/checkout@v4
-
-    # - uses: google-github-actions/auth@v2
-    #   with:
-    #     project_id: 'my-project'
-    #     workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+    # 
   
