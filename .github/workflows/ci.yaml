@@ -3,6 +3,10 @@ name: ci
 on:
   push:
 
+env:
+  EKS_CLUSTER_NAME: ziti-agent-demo 
+  AWS_REGION: us-west-2
+
 jobs:
   # docker:
   #   runs-on: ubuntu-latest
@@ -48,6 +52,31 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_FOR_GITHUB }}
           role-session-name: GitHubActions
           audience: sts.amazonaws.com
+      -
+        name: install-kubectl
+        uses: alexellis/arkade-get@master
+        with:
+          kubectl: latest
+      - 
+        run: kubectl --version
+        shell: bash
+      -
+        id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2                         
+          verbose: false                     
+          arch: amd64                        
+          bindir: "/usr/local/bin"           
+          installrootdir: "/usr/local"  
+      -
+        run: aws --version
+        shell: bash
+      # - 
+      #   name: update-kube-config
+      #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+          
+
 
     # steps:
     # - uses: actions/checkout@v4
