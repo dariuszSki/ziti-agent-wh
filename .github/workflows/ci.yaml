@@ -58,7 +58,7 @@ jobs:
         with:
           kubectl: latest
       - 
-        run: kubectl version
+        run: kubectl version --client=true
         shell: bash
       -
         id: install-aws-cli
