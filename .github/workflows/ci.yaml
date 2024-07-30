@@ -57,36 +57,35 @@ jobs:
         uses: alexellis/arkade-get@master
         with:
           kubectl: latest
-      - 
-        run: kubectl version --client=true
-        shell: bash
       -
         name: install-aws-cli
         uses: unfor19/install-aws-cli-action@v1
         with:
           version: 2                         
           verbose: false                     
-          arch: amd64                         
+          arch: amd64
       -
-        run: aws --version
-        shell: bash
+        name: install-gcloud-cli
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest   
+          install_components: gke-gcloud-auth-plugin              
       - 
-        name: install-postman-cli
+        name: install-postman-jq-zet-cli
         run: |
           curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
-      -
-        run: postman --version
-        shell: bash
-      - 
-        name: install-jq-package
-        run: |
           sudo apt-get update
           sudo apt-get --yes install jq 
-      -
-        name: install-zet-package
-        run: |
           curl -sSLf https://get.openziti.io/tun/scripts/install-ubuntu.bash | bash
           sudo systemctl enable --now ziti-edge-tunnel.service
+          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/eksctl /usr/local/bin
+          postman --version
+          ziti-edge-tunnel --version
+          eksctl version
+          aws --version
+          kubectl version --client=true
+          gcloud info
       # - 
       #   name: update-kube-config
       #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
