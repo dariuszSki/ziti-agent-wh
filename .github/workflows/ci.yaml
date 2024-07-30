@@ -45,6 +45,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
+          aws-access-key-id: ${{ secrets.AWS_ID_FOR_GITHUB }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_FOR_GITHUB }}
           role-to-assume: ${{ secrets.AWS_ROLE_FOR_GITHUB }}
           role-session-name: GitHubActions
 
