@@ -85,7 +85,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable $(lsb_release -c -s) main" \
           | sudo tee /etc/apt/sources.list.d/openziti.list >/dev/null
           sudo apt-get update
-          sudo apt-get -y install jq openziti ziti-edge-tunnel
+          sudo apt-get -y install jq ziti ziti-edge-tunnel
           ziti -v
           ziti-edge-tunnel -v
 
