@@ -8,21 +8,19 @@ ARG ARTIFACTS_DIR=build
 ARG DOCKER_BUILD_DIR=.
 
 ### Required OpenShift Labels
-LABEL name="openziti/ziti-router" \
+LABEL name="openziti/ziti-cli" \
       maintainer="developers@openziti.org" \
       vendor="NetFoundry" \
-      summary="Run the OpenZiti Router" \
-      description="Run the OpenZiti Router"
+      summary="Run the OpenZiti Cli" \
+      description="Run the OpenZiti CLI"
 
 # set up image as root
 USER root
 
 # install artifacts as root
-COPY ${ARTIFACTS_DIR}/ziti-agent-wh /usr/local/bin/
-COPY ${ARTIFACTS_DIR}/*.pem /home/ziggy/
-RUN chmod 0755 /usr/local/bin/ziti-agent-wh
-RUN chmod 0755 /home/ziggy/*.pem
+COPY ${ARTIFACTS_DIR}/ziti-k8s-agent /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/ziti-k8s-agent
 
 USER ziggy
 #COPY ${DOCKER_BUILD_DIR}/deployment/bashrc /home/ziggy/.bashrc
-ENTRYPOINT [ "ziti-agent-wh" ]
+ENTRYPOINT [ "ziti-k8s-agent" ]
