@@ -125,6 +125,7 @@ jobs:
               publicAccess: true
               privateAccess: true
           EOF
+          eksctl delete cluster -f ./eks-cluster.yaml --force 
           eksctl create cluster -f ./eks-cluster.yaml
       -
         name: delete-eks
