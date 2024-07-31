@@ -7,8 +7,8 @@ env:
   CLUSTER_NAME: ziti-agent-demo 
   AWS_REGION: us-west-2
   GKE_REGION: us-central1
-  GKE_NETWORK_NAME: test01
-  GKE_SUBNETWORK_NAME: test01
+  GKE_NETWORK_NAME: default
+  GKE_SUBNETWORK_NAME: default
 
 jobs:
   # docker:
@@ -142,6 +142,7 @@ jobs:
           --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
           --default-max-pods-per-node "110" --enable-ip-alias
           echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" $GITHUB_ENV 
+          kubectl get pods --all-namespaces --context $GKE_CLUSTER
       -
         name: delete-clusters
         run: |
