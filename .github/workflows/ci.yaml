@@ -101,62 +101,62 @@ jobs:
           tar xf $ziti_binary_name
           rm $ziti_binary_name
           sudo mv ziti /usr/local/bin
-      # - 
-      #   name: create-eks-cluster
-      #   run: |
-      #     cat <<EOF >eks-cluster.yaml
-      #     apiVersion: eksctl.io/v1alpha5
-      #     kind: ClusterConfig
-      #     metadata:
-      #       name: $CLUSTER_NAME
-      #       region: $AWS_REGION
-      #       version: "1.28"
-      #     managedNodeGroups:
-      #     - name: ng-1
-      #       instanceType: t3.medium
-      #       iam:
-      #           withAddonPolicies:
-      #             ebs: true
-      #             fsx: true
-      #             efs: true
-      #       desiredCapacity: 2
-      #       privateNetworking: true
-      #       labels:
-      #         nodegroup-type: workloads
-      #       tags:
-      #         nodegroup-role: worker
-      #     vpc:
-      #       cidr: 10.10.0.0/16
-      #       publicAccessCIDRs: []
-      #       # disable public access to endpoint and only allow private access
-      #       clusterEndpoints:
-      #         publicAccess: true
-      #         privateAccess: true
-      #     EOF
-      #     eksctl create cluster -f ./eks-cluster.yaml
-      #     echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
-      # -
-      #   name: create-gke-cluster
-      #   if: success() || failure()
-      #   run: |
-      #     gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
-      #     --region $GKE_REGION --no-enable-basic-auth \
-      #     --release-channel "regular" --machine-type "e2-medium" \
-      #     --disk-size "100" --metadata disable-legacy-endpoints=true \
-      #     --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
-      #     --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
-      #     --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
-      #     --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
-      #     --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-      #     --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
-      #     --default-max-pods-per-node "110" --enable-ip-alias
-      #     echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" >> $GITHUB_ENV 
-      # -
-      #   name: test-cluster-pods
-      #   if: success() || failure()
-      #   run: |
-      #     kubectl get pods --all-namespaces --context $AWS_CLUSTER
-      #     kubectl get pods --all-namespaces --context $GKE_CLUSTER
+      - 
+        name: create-eks-cluster
+        run: |
+          cat <<EOF >eks-cluster.yaml
+          apiVersion: eksctl.io/v1alpha5
+          kind: ClusterConfig
+          metadata:
+            name: $CLUSTER_NAME
+            region: $AWS_REGION
+            version: "1.28"
+          managedNodeGroups:
+          - name: ng-1
+            instanceType: t3.medium
+            iam:
+                withAddonPolicies:
+                  ebs: true
+                  fsx: true
+                  efs: true
+            desiredCapacity: 2
+            privateNetworking: true
+            labels:
+              nodegroup-type: workloads
+            tags:
+              nodegroup-role: worker
+          vpc:
+            cidr: 10.10.0.0/16
+            publicAccessCIDRs: []
+            # disable public access to endpoint and only allow private access
+            clusterEndpoints:
+              publicAccess: true
+              privateAccess: true
+          EOF
+          eksctl create cluster -f ./eks-cluster.yaml
+          echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
+      -
+        name: create-gke-cluster
+        if: success() || failure()
+        run: |
+          gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
+          --region $GKE_REGION --no-enable-basic-auth \
+          --release-channel "regular" --machine-type "e2-medium" \
+          --disk-size "100" --metadata disable-legacy-endpoints=true \
+          --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
+          --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
+          --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
+          --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
+          --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
+          --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
+          --default-max-pods-per-node "110" --enable-ip-alias
+          echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" >> $GITHUB_ENV 
+      -
+        name: test-cluster-pods
+        if: success() || failure()
+        run: |
+          kubectl get pods --all-namespaces --context $AWS_CLUSTER
+          kubectl get pods --all-namespaces --context $GKE_CLUSTER
       - 
         name: create-nf-network-services
         if: success() || failure()
@@ -344,17 +344,16 @@ jobs:
           ziti edge enroll -j adminUser.jwt -o adminUser.json
           echo "NF_ADMIN_IDENTITY_PATH=adminUser.json" >> $GITHUB_ENV
           sudo ziti-edge-tunnel add --jwt "$(< ./testUser.jwt)" --identity testUser
-      # -
-      #   name: delete-clusters
-      #   if: success() || failure()
-      #   run: |
-      #     eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
-      #     gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
+      -
+        name: delete-clusters
+        if: success() || failure()
+        run: |
+          eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
+          gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
       - 
         name: delete-nf-network
         if: success() || failure()
         run: |
-          sleep 300
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                             --header "Content-Type: application/x-www-form-urlencoded" \
                             --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
