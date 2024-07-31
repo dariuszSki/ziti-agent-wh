@@ -334,6 +334,7 @@ jobs:
           export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
               --header "Content-Type: application/json" \
               --header "Authorization: $token_type $token"`
+          echo "NF_NETWORK_ID=$(echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id')" >> $GITHUB_ENV
           export network_id=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
           export zt_token=`curl  --silent --location --request POST "https://gateway.production.netfoundry.io/core/v3/networks/$network_id/exchange" \
                 --header "Content-Type: application/json" --header "Authorization: $token_type $token" --data "{\"type\": \"session\"}"`
@@ -359,7 +360,7 @@ jobs:
                             --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
           export token=`echo $RESPONSE |jq -r .access_token`
           export token_type=`echo $RESPONSE |jq -r .token_type`
-          export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$network_id" \
+          export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
           echo $network_status
