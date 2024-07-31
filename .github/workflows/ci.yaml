@@ -152,7 +152,7 @@ jobs:
         name: delete-clusters
         run: |
           # eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
-          gcloud container --project $GKE_PROJECT_NAME clusters delete $CLUSTER_NAME --region $GKE_REGION
+          gcloud container --project $GKE_PROJECT_NAME clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
       # - name: deploy-webhook-2-clusters
       #   run: |
       #     kubectl apply -f 
