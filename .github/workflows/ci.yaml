@@ -125,11 +125,10 @@ jobs:
               publicAccess: true
               privateAccess: true
           EOF
-          eksctl delete cluster -f ./eks-cluster.yaml --force 
           eksctl create cluster -f ./eks-cluster.yaml
       -
         name: delete-eks
-        run: eksctl delete cluster -f ./eks-cluster.yaml
+        run: eksctl delete cluster -f ./eks-cluster.yaml --force
 
       # - 
       #   name: update-kube-config
