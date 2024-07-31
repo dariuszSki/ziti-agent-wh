@@ -54,7 +54,7 @@ jobs:
         name: Authenticate to AWS Cloud
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_FOR_GITHUB }}
           role-session-name: GitHubActions
           audience: sts.amazonaws.com
@@ -101,7 +101,6 @@ jobs:
           kind: ClusterConfig
           metadata:
             name: $CLUSTER_NAME
-            region: $AWS_REGION
             version: "1.28"
           managedNodeGroups:
           - name: ng-1
