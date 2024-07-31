@@ -325,7 +325,7 @@ jobs:
             }
           EOF
           postman collection run deployment/nf-network-services-create.postman_collection.json \
-              -g nf-network-services-create.postman_globals.json -k
+              -g nf-network-services-create.postman_environment.json -k
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                             --header "Content-Type: application/x-www-form-urlencoded" \
                             --user "$NF_API_CLIENT_ID_FOR_GITHUB:$NF_API_CLIENT_PW_FOR_GITHUB" --data-urlencode "grant_type=client_credentials"`
