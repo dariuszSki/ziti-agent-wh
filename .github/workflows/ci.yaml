@@ -328,7 +328,7 @@ jobs:
               -g nf-network-services-create.postman_global.json -k
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                             --header "Content-Type: application/x-www-form-urlencoded" \
-                            --user "$NF_API_CLIENT_ID_FOR_GITHUB:$NF_API_CLIENT_PW_FOR_GITHUB" --data-urlencode "grant_type=client_credentials"`
+                            --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
           export token=`echo $RESPONSE |jq -r .access_token`
           export token_type=`echo $RESPONSE |jq -r .token_type`
           export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
@@ -337,7 +337,6 @@ jobs:
           export network_id=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
           export zt_token=`curl  --silent --location --request POST "https://gateway.production.netfoundry.io/core/v3/networks/$network_id/exchange" \
                 --header "Content-Type: application/json" --header "Authorization: $token_type $token" --data "{\"type\": \"session\"}"`
-          echo $zt_token
           export identitiy_list=`curl --silent --location --request GET "$(echo $zt_token | jq -r .networkControllerUrl)/identities" --header "Content-Type: application/json" --header "zt-session: $(echo $zt_token | jq -r .value)" -k`
           echo $identitiy_list | jq -r '.data[] | select(.name=="adminUser").enrollment.ott.jwt' > adminUser.jwt
           echo $identitiy_list | jq -r '.data[] | select(.name=="testUser").enrollment.ott.jwt' > testUser.jwt
@@ -354,9 +353,7 @@ jobs:
         name: delete-nf-network
         if: success() || failure()
         run: |
-          echo $token
-          echo $token_type
-          echo $network_id
+          sleep 300
           export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$network_id" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
