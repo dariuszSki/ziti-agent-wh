@@ -161,11 +161,11 @@ jobs:
         name: create-nf-network-services
         if: success() || failure()
         run: |
-          cat <<EOF >nf-network-services-create.postman_environment.json
+          cat <<EOF >nf-network-services-create.postman_global.json
             {
               "id": "8cbd9872-4829-4670-ae4f-9642416c3b28",
               "name": "nf-network-services-create",
-              "_postman_variable_scope": "environment",
+              "_postman_variable_scope": "global",
               "_postman_exported_at": "2024-06-30T14:59:30.311Z",
               "_postman_exported_using": "Postman/11.6.0",
               "values": [
@@ -325,7 +325,7 @@ jobs:
             }
           EOF
           postman collection run deployment/nf-network-services-create.postman_collection.json \
-              -g nf-network-services-create.postman_environment.json -k
+              -g nf-network-services-create.postman_global.json -k
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                             --header "Content-Type: application/x-www-form-urlencoded" \
                             --user "$NF_API_CLIENT_ID_FOR_GITHUB:$NF_API_CLIENT_PW_FOR_GITHUB" --data-urlencode "grant_type=client_credentials"`
@@ -353,10 +353,6 @@ jobs:
         name: delete-nf-network
         if: success() || failure()
         run: |
-          if [ -z "$NF_API_CREDENTIALS_PATH" ] || [ -z "$NF_NETWORK_NAME" ]; then
-            echo "Error: Variable 'NF_API_CREDENTIALS_PATH' or 'NF_NETWORK_NAME' is not set!"
-            exit 1
-          fi
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                                 --header "Content-Type: application/x-www-form-urlencoded" \
                                 --user "$NF_API_CLIENT_ID_FOR_GITHUB:$NF_API_CLIENT_PW_FOR_GITHUB" --data-urlencode "grant_type=client_credentials"`
