@@ -354,6 +354,11 @@ jobs:
         if: success() || failure()
         run: |
           sleep 300
+          export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
+                            --header "Content-Type: application/x-www-form-urlencoded" \
+                            --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
+          export token=`echo $RESPONSE |jq -r .access_token`
+          export token_type=`echo $RESPONSE |jq -r .token_type`
           export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$network_id" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
