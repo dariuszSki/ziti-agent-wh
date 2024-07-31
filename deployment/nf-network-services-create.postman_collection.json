@@ -24,8 +24,8 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();",
-                "pm.globals.set(\"jwt_token\", jsonData.access_token);",
-                "pm.globals.set(\"jwt_type\", jsonData.token_type);"
+                "pm.environment.set(\"jwt_token\", jsonData.access_token);",
+                "pm.environment.set(\"jwt_type\", jsonData.token_type);"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -87,7 +87,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('networkId', jsonData.id)"
+                "pm.environment.set('networkId', jsonData.id)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -207,8 +207,8 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('api_token', jsonData.value)\r",
-                "pm.globals.set('controller-api-endpoint', jsonData.networkControllerUrl)"
+                "pm.environment.set('api_token', jsonData.value)\r",
+                "pm.environment.set('controller-api-endpoint', jsonData.networkControllerUrl)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -263,7 +263,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('edgeRouterId', jsonData.data.id)"
+                "pm.environment.set('edgeRouterId', jsonData.data.id)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -313,7 +313,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('mopEdgeRouterId', jsonData.id)"
+                "pm.environment.set('mopEdgeRouterId', jsonData.id)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -362,7 +362,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('adminIdentityId', jsonData.data.id)"
+                "pm.environment.set('adminIdentityId', jsonData.data.id)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -415,7 +415,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('clientIdentityId', jsonData.data.id)\r",
+                "pm.environment.set('clientIdentityId', jsonData.data.id)\r",
                 ""
               ],
               "type": "text/javascript",
@@ -469,7 +469,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('adminIdentityJwt', jsonData.data.enrollment.ott.jwt)"
+                "pm.environment.set('adminIdentityJwt', jsonData.data.enrollment.ott.jwt)"
               ],
               "type": "text/javascript",
               "packages": {}
@@ -526,7 +526,7 @@
             "script": {
               "exec": [
                 "const jsonData = pm.response.json();\r",
-                "pm.globals.set('clientIdentityJwt', jsonData.data.enrollment.ott.jwt)"
+                "pm.environment.set('clientIdentityJwt', jsonData.data.enrollment.ott.jwt)"
               ],
               "type": "text/javascript",
               "packages": {}
