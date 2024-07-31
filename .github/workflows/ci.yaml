@@ -4,8 +4,11 @@ on:
   push:
 
 env:
-  EKS_CLUSTER_NAME: ziti-agent-demo 
+  CLUSTER_NAME: ziti-agent-demo 
   AWS_REGION: us-west-2
+  GKE_REGION: us-central1
+  GKE_NETWORK_NAME: test01
+  GKE_SUBNETWORK_NAME: test01
 
 jobs:
   # docker:
@@ -90,12 +93,43 @@ jobs:
           sudo systemctl enable --now ziti-edge-tunnel.service
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin
-          postman --version
-          ziti-edge-tunnel version
-          eksctl version
-          aws --version
-          kubectl version --client=true
-          gcloud info
+      - 
+        name: create-eks
+        run: |
+          cat <<EOF >eks-cluster.yaml
+          apiVersion: eksctl.io/v1alpha5
+          kind: ClusterConfig
+          metadata:
+            name: ${{ env.CLUSTER_NAME }}
+            region: ${{ env.AWS_REGION }}
+            version: "1.28"
+          managedNodeGroups:
+          - name: ng-1
+            instanceType: t3.medium
+            iam:
+                withAddonPolicies:
+                  ebs: true
+                  fsx: true
+                  efs: true
+            desiredCapacity: 2
+            privateNetworking: true
+            labels:
+              nodegroup-type: workloads
+            tags:
+              nodegroup-role: worker
+          vpc:
+            cidr: 10.10.0.0/16
+            publicAccessCIDRs: []
+            # disable public access to endpoint and only allow private access
+            clusterEndpoints:
+              publicAccess: true
+              privateAccess: true
+          EOF
+          eksctl create cluster -f ./eks-cluster.yaml
+      -
+        name: delete-eks
+        run: eksctl delete cluster -f ./eks-cluster.yaml
+
       # - 
       #   name: update-kube-config
       #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
