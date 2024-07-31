@@ -161,11 +161,11 @@ jobs:
         name: create-nf-network-services
         if: success() || failure()
         run: |
-          cat <<EOF >nf-network-services-create.postman_globals.json
+          cat <<EOF >nf-network-services-create.postman_environment.json
             {
               "id": "8cbd9872-4829-4670-ae4f-9642416c3b28",
               "name": "nf-network-services-create",
-              "_postman_variable_scope": "global",
+              "_postman_variable_scope": "environment",
               "_postman_exported_at": "2024-06-30T14:59:30.311Z",
               "_postman_exported_using": "Postman/11.2.24",
               "values": [
