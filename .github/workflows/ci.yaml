@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  CLUSTER_NAME: ziti-agent-demo 
+  CLUSTER_NAME: ziti-agent-regression 
   AWS_REGION: us-west-2
   GKE_REGION: us-central1
   GKE_NETWORK_NAME: default
@@ -38,14 +38,12 @@ jobs:
   #         platforms: linux/amd64,linux/arm64
   #         push: true
   #         tags: elblag91/ziti-k8s-agent:${{ github.ref_name }}
-  test: 
+  regression_test: 
     # needs: [docker]
     runs-on: ubuntu-latest
-    # Add "id-token" with the intended permissions.
     permissions:
       contents: read
       id-token: write
-
     steps: 
       -
         name: Checkout
@@ -93,40 +91,40 @@ jobs:
           sudo systemctl enable --now ziti-edge-tunnel.service
           curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
           sudo mv /tmp/eksctl /usr/local/bin
-      # - 
-      #   name: create-eks-cluster
-      #   run: |
-      #     cat <<EOF >eks-cluster.yaml
-      #     apiVersion: eksctl.io/v1alpha5
-      #     kind: ClusterConfig
-      #     metadata:
-      #       name: $CLUSTER_NAME
-      #       region: $AWS_REGION
-      #       version: "1.28"
-      #     managedNodeGroups:
-      #     - name: ng-1
-      #       instanceType: t3.medium
-      #       iam:
-      #           withAddonPolicies:
-      #             ebs: true
-      #             fsx: true
-      #             efs: true
-      #       desiredCapacity: 2
-      #       privateNetworking: true
-      #       labels:
-      #         nodegroup-type: workloads
-      #       tags:
-      #         nodegroup-role: worker
-      #     vpc:
-      #       cidr: 10.10.0.0/16
-      #       publicAccessCIDRs: []
-      #       # disable public access to endpoint and only allow private access
-      #       clusterEndpoints:
-      #         publicAccess: true
-      #         privateAccess: true
-      #     EOF
-      #     eksctl create cluster -f ./eks-cluster.yaml
-      #     echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
+      - 
+        name: create-eks-cluster
+        run: |
+          cat <<EOF >eks-cluster.yaml
+          apiVersion: eksctl.io/v1alpha5
+          kind: ClusterConfig
+          metadata:
+            name: $CLUSTER_NAME
+            region: $AWS_REGION
+            version: "1.28"
+          managedNodeGroups:
+          - name: ng-1
+            instanceType: t3.medium
+            iam:
+                withAddonPolicies:
+                  ebs: true
+                  fsx: true
+                  efs: true
+            desiredCapacity: 2
+            privateNetworking: true
+            labels:
+              nodegroup-type: workloads
+            tags:
+              nodegroup-role: worker
+          vpc:
+            cidr: 10.10.0.0/16
+            publicAccessCIDRs: []
+            # disable public access to endpoint and only allow private access
+            clusterEndpoints:
+              publicAccess: true
+              privateAccess: true
+          EOF
+          eksctl create cluster -f ./eks-cluster.yaml
+          echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
       -
         name: create-gke-cluster
         if: success() || failure()
@@ -142,17 +140,18 @@ jobs:
           --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
           --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
           --default-max-pods-per-node "110" --enable-ip-alias
-          echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" $GITHUB_ENV 
+          echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" >> $GITHUB_ENV 
       -
         name: test-cluster-pods
         if: success() || failure()
         run: |
+          kubectl get pods --all-namespaces --context $AWS_CLUSTER
           kubectl get pods --all-namespaces --context $GKE_CLUSTER
       -
         name: delete-clusters
         if: success() || failure()
         run: |
-          # eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
+          eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
           gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
       # - name: deploy-webhook-2-clusters
       #   run: |
