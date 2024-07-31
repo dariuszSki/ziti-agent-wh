@@ -129,6 +129,7 @@ jobs:
       #     echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
       -
         name: create-gke-cluster
+        if: success() || failure()
         run: |
           gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
           --region $GKE_REGION --no-enable-basic-auth \
@@ -142,9 +143,14 @@ jobs:
           --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
           --default-max-pods-per-node "110" --enable-ip-alias
           echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" $GITHUB_ENV 
+      -
+        name: test-cluster-pods
+        if: success() || failure()
+        run: |
           kubectl get pods --all-namespaces --context $GKE_CLUSTER
       -
         name: delete-clusters
+        if: success() || failure()
         run: |
           # eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction 
           gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
