@@ -73,9 +73,9 @@ jobs:
           install_components: gke-gcloud-auth-plugin
       -
         name: install-kubectl
-        uses: alexellis/arkade-get@master
+        uses: azure/setup-kubectl@v3
         with:
-          kubectl: latest
+          version: latest
       -
         name: install-aws-cli
         uses: unfor19/install-aws-cli-action@v1
@@ -100,8 +100,8 @@ jobs:
           apiVersion: eksctl.io/v1alpha5
           kind: ClusterConfig
           metadata:
-            name: ${{ env.CLUSTER_NAME }}
-            region: ${{ env.AWS_REGION }}
+            name: $CLUSTER_NAME
+            region: $AWS_REGION
             version: "1.28"
           managedNodeGroups:
           - name: ng-1
@@ -132,7 +132,10 @@ jobs:
 
       # - 
       #   name: update-kube-config
-      #   run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+          # run: |
+          #     mkdir -p $HOME/.kube
+          #     echo "$KUBE_CONFIG_DATA" | base64 -d > $HOME/.kube/config
+          #     aws eks update-kubeconfig --region ${{ env.AWS_REGION }}--name ${{ env.CLUSTER_NAME }}
           
       # - name: deploy-webhook-2-clusters
       #   run: |
