@@ -101,7 +101,7 @@ jobs:
           kind: ClusterConfig
           metadata:
             name: ${{ env.CLUSTER_NAME }}
-            region" ${{ env.AWS_REGION }}
+            region: ${{ env.AWS_REGION }}
             version: "1.28"
           managedNodeGroups:
           - name: ng-1
