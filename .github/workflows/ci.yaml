@@ -134,9 +134,10 @@ jobs:
               privateAccess: true
           EOF
           STATUS=`eksctl get cluster --name $CLUSTER_NAME  --region $AWS_REGION -o json | jq -r '.[].Status'`
-          if [ $STATUS == "ACTIVE" ]; then
+          if [ "$STATUS" == "ACTIVE" ]; then
             echo $STATUS 
             echo "Skipping  EKS Installation"
+            aws eks update-kubeconfig --name $CLUSTER_NAME  --region $AWS_REGION
           else
             if [ -z "$STATUS" ]; then
               eksctl create cluster -f ./eks-cluster.yaml
@@ -151,9 +152,10 @@ jobs:
         run: |
           STATUS=`gcloud container --project $GCP_PROJECT clusters describe $CLUSTER_NAME --region $GKE_REGION --format json | jq -r '.status'`
           echo  $STATUS
-          if [ $STATUS == "RUNNING" ]; then 
+          if [ "$STATUS" == "RUNNING" ]; then 
             echo $STATUS 
             echo "Skipping  GKE Installation"
+            gcloud container clusters get-credentials $CLUSTER_NAME --region $GKE_REGION
           else
             if [ -z "$STATUS" ]; then
               gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
@@ -198,11 +200,12 @@ jobs:
                             --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
           export token=`echo $RESPONSE |jq -r .access_token`
           export token_type=`echo $RESPONSE |jq -r .token_type`
-          export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
+          export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
-          STATUS=`echo $network_status | jq -r '.status'`
-          if [ $STATUS != "PROVISIONED" ]; then
+          echo "NF_NETWORK_ID=$(echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id')" >> $GITHUB_ENV
+          STATUS=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
+          if [ "$STATUS" != "PROVISIONED" ]; then
             export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"
@@ -690,6 +693,10 @@ jobs:
                             --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
           export token=`echo $RESPONSE |jq -r .access_token`
           export token_type=`echo $RESPONSE |jq -r .token_type`
+          export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
+                --header "Content-Type: application/json" \
+                --header "Authorization: $token_type $token"`
+          echo "NF_NETWORK_ID=$(echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id')" >> $GITHUB_ENV
           export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
