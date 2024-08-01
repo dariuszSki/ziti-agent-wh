@@ -133,34 +133,81 @@ jobs:
               publicAccess: true
               privateAccess: true
           EOF
-          eksctl create cluster -f ./eks-cluster.yaml
+          STATUS=`eksctl get cluster --name $CLUSTER_NAME  --region $AWS_REGION -o json | jq -r '.[].Status'`
+          if [ $STATUS == "ACTIVE" ]; then
+            echo $STATUS 
+            echo "Skipping  EKS Installation"
+          else
+            if [ -z "$STATUS" ]; then
+              eksctl create cluster -f ./eks-cluster.yaml
+            else
+              eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction
+              eksctl create cluster -f ./eks-cluster.yaml
+            fi 
+          fi
           echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
       -
         name: create-gke-cluster
-        if: success() || failure()
         run: |
-          gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
-          --region $GKE_REGION --no-enable-basic-auth \
-          --release-channel "regular" --machine-type "e2-medium" \
-          --disk-size "100" --metadata disable-legacy-endpoints=true \
-          --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
-          --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
-          --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
-          --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
-          --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-          --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
-          --default-max-pods-per-node "110" --enable-ip-alias
+          STATUS=`gcloud container --project $GCP_PROJECT clusters describe $CLUSTER_NAME --region $GKE_REGION --format json | jq -r '.status'`
+          echo  $STATUS
+          if [ $STATUS == "RUNNING" ]; then 
+            echo $STATUS 
+            echo "Skipping  GKE Installation"
+          else
+            if [ -z "$STATUS" ]; then
+              gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
+              --region $GKE_REGION --no-enable-basic-auth \
+              --release-channel "regular" --machine-type "e2-medium" \
+              --disk-size "100" --metadata disable-legacy-endpoints=true \
+              --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
+              --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
+              --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
+              --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
+              --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
+              --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
+              --default-max-pods-per-node "110" --enable-ip-alias
+            else
+              gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
+              gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
+              --region $GKE_REGION --no-enable-basic-auth \
+              --release-channel "regular" --machine-type "e2-medium" \
+              --disk-size "100" --metadata disable-legacy-endpoints=true \
+              --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
+              --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
+              --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
+              --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
+              --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
+              --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
+              --default-max-pods-per-node "110" --enable-ip-alias
+            fi
+          fi
           echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" >> $GITHUB_ENV 
       -
         name: test-cluster-pods
         if: success() || failure()
         run: |
+          sleep 30
           kubectl get pods --all-namespaces --context $AWS_CLUSTER
           kubectl get pods --all-namespaces --context $GKE_CLUSTER
       - 
         name: create-nf-network-services
-        if: success() || failure()
         run: |
+          export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
+                            --header "Content-Type: application/x-www-form-urlencoded" \
+                            --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
+          export token=`echo $RESPONSE |jq -r .access_token`
+          export token_type=`echo $RESPONSE |jq -r .token_type`
+          export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
+                --header "Content-Type: application/json" \
+                --header "Authorization: $token_type $token"`
+          STATUS=`echo $network_status | jq -r '.status'`
+          if [ $STATUS != "PROVISIONED" ]; then
+            export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
+                --header "Content-Type: application/json" \
+                --header "Authorization: $token_type $token"
+            sleep 120
+          fi 
           cat <<EOF >nf-network-services-create.postman_global.json
             {
               "id": "8cbd9872-4829-4670-ae4f-9642416c3b28",
@@ -646,5 +693,12 @@ jobs:
           export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
-          echo $network_status
+          sleep 30
+          STATUS=`echo $network_status | jq -r '.status'`
+          if [ $STATUS != "DELETING" ] || [ $STATUS != "DELETED" ] ; then
+            export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
+                --header "Content-Type: application/json" \
+                --header "Authorization: $token_type $token"
+          fi
+          echo $network_status | jq -r '.status'
 
