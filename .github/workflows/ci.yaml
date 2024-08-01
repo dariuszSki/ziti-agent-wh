@@ -324,7 +324,7 @@ jobs:
               ]
             }
           EOF
-          postman collection run deployment/nf-network-services-create.postman_collection.json \
+          postman collection run test/nf-network-services-create.postman_collection.json \
               -g nf-network-services-create.postman_global.json -k
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
                             --header "Content-Type: application/x-www-form-urlencoded" \
@@ -574,15 +574,23 @@ jobs:
           kubectl create namespace test2 --context $GKE_CLUSTER
           kubectl label namespace test2 openziti/ziti-tunnel=enabled --context $GKE_CLUSTER
           kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $GKE_CLUSTER -n test2
+          sleep 30
       - 
         name: run-testcase-01
         run: |
-          kubectl get pods -n test1 --context  $AWS_CLUSTER
-          kubectl get pods -n test2 --context  $GKE_CLUSTER
+          if [ -f "./testcase_pods.log" ]; then
+            rm ./testcase_pods.log
+          fi
+          if [ -f "./testcase_curl_output.log" ]; then
+            rm ./testcase_curl_output.log
+          fi
+          kubectl get pods -n test1 --context  $AWS_CLUSTER >> testcase_pods.log
+          kubectl get pods -n test2 --context  $GKE_CLUSTER >> testcase_pods.log
           for i in $(seq 1 20);
           do
-            curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews
+            curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews >> testcase_curl_output.log
           done
+          test/verify_test_results.py
       -
         name: scaledown-2-testcase-02
         if: success() || failure()
@@ -598,12 +606,19 @@ jobs:
         name: run-testcase-02
         if: success() || failure()
         run: |
-          kubectl get pods -n test1 --context  $AWS_CLUSTER
-          kubectl get pods -n test2 --context  $GKE_CLUSTER
+          if [ -f "./testcase_pods.log" ]; then
+            rm ./testcase_pods.log
+          fi
+          if [ -f "./testcase_curl_output.log" ]; then
+            rm ./testcase_curl_output.log
+          fi
+          kubectl get pods -n test1 --context  $AWS_CLUSTER >> testcase_pods.log
+          kubectl get pods -n test2 --context  $GKE_CLUSTER >> testcase_pods.log
           for i in $(seq 1 20);
           do
-            curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews
+            curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews >> testcase_curl_output.log
           done
+          test/verify_test_results.py
       -
         name:
         run: |
