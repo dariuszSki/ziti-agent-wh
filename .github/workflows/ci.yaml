@@ -146,7 +146,8 @@ jobs:
               eksctl create cluster -f ./eks-cluster.yaml
             fi 
           fi
-          echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eksctl)" >> $GITHUB_ENV   
+          kubectl config get-contexts -o name | grep $CLUSTER_NAME
+          echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eks)" >> $GITHUB_ENV   
       -
         name: create-gke-cluster
         run: |
@@ -699,12 +700,6 @@ jobs:
           export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
-          sleep 30
-          STATUS=`echo $network_status | jq -r '.status'`
-          if [ $STATUS != "DELETING" ] || [ $STATUS != "DELETED" ] ; then
-            export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
-                --header "Content-Type: application/json" \
-                --header "Authorization: $token_type $token"
-          fi
           echo $network_status | jq -r '.status'
+          
 
