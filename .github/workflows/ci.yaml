@@ -204,8 +204,8 @@ jobs:
           export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
-          echo "NF_NETWORK_ID=$(echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id')" >> $GITHUB_ENV
-          if [ ! -z "$NF_NETWORK_ID" ]; then
+          NF_NETWORK_ID=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
+          if [[ ! -z "$NF_NETWORK_ID" ]]; then
             export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"
@@ -376,11 +376,6 @@ jobs:
           EOF
           postman collection run test/nf-network-services-create.postman_collection.json \
               -g nf-network-services-create.postman_global.json -k
-          export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
-                            --header "Content-Type: application/x-www-form-urlencoded" \
-                            --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
-          export token=`echo $RESPONSE |jq -r .access_token`
-          export token_type=`echo $RESPONSE |jq -r .token_type`
           export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
               --header "Content-Type: application/json" \
               --header "Authorization: $token_type $token"`
