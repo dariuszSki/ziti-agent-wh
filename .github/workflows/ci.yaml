@@ -204,8 +204,7 @@ jobs:
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
           echo "NF_NETWORK_ID=$(echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id')" >> $GITHUB_ENV
-          STATUS=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
-          if [ "$STATUS" != "PROVISIONED" ]; then
+          if [ ! -z "$NF_NETWORK_ID" ]; then
             export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"
