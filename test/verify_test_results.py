@@ -30,7 +30,7 @@ if __name__ == '__main__':
     pods_file_path = 'testcase_pods.log'
     curl_output_file_path = 'testcase_curl_output.log'
     pattern = r'\breviews[a-z0-9\w-]+\b'
-    matched_pods = find_pattern(pods_file_path, pattern)
+    matched_pods = sorted(find_pattern(pods_file_path, pattern))
     matched_curl_output = find_pattern(curl_output_file_path, pattern)
     matched_curl_output_unique = sorted(list(set(matched_curl_output)))
     for pod in matched_pods:
