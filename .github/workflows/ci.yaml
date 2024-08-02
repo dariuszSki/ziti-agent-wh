@@ -134,57 +134,29 @@ jobs:
               privateAccess: true
           EOF
           STATUS=`eksctl get cluster --name $CLUSTER_NAME  --region $AWS_REGION -o json | jq -r '.[].Status'`
-          if [ "$STATUS" == "ACTIVE" ]; then
-            echo $STATUS 
-            echo "Skipping  EKS Installation"
-            aws eks update-kubeconfig --name $CLUSTER_NAME  --region $AWS_REGION
+          if [[ ! -z "$STATUS" ]]; then
+            eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction
           else
-            if [ -z "$STATUS" ]; then
-              eksctl create cluster -f ./eks-cluster.yaml
-            else
-              eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction
-              eksctl create cluster -f ./eks-cluster.yaml
-            fi 
-          fi
-          kubectl config get-contexts -o name | grep $CLUSTER_NAME
+          eksctl create cluster -f ./eks-cluster.yaml
           echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eks)" >> $GITHUB_ENV   
       -
         name: create-gke-cluster
         run: |
           STATUS=`gcloud container --project $GCP_PROJECT clusters describe $CLUSTER_NAME --region $GKE_REGION --format json | jq -r '.status'`
-          echo  $STATUS
-          if [ "$STATUS" == "RUNNING" ]; then 
-            echo $STATUS 
-            echo "Skipping  GKE Installation"
-            gcloud container clusters get-credentials $CLUSTER_NAME --region $GKE_REGION
-          else
-            if [ -z "$STATUS" ]; then
-              gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
-              --region $GKE_REGION --no-enable-basic-auth \
-              --release-channel "regular" --machine-type "e2-medium" \
-              --disk-size "100" --metadata disable-legacy-endpoints=true \
-              --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
-              --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
-              --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
-              --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
-              --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-              --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
-              --default-max-pods-per-node "110" --enable-ip-alias
-            else
-              gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
-              gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
-              --region $GKE_REGION --no-enable-basic-auth \
-              --release-channel "regular" --machine-type "e2-medium" \
-              --disk-size "100" --metadata disable-legacy-endpoints=true \
-              --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
-              --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
-              --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
-              --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
-              --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-              --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
-              --default-max-pods-per-node "110" --enable-ip-alias
-            fi
+          if [[ ! -z "$STATUS" ]]; then
+            gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
           fi
+          gcloud container --project $GCP_PROJECT clusters create $CLUSTER_NAME \
+          --region $GKE_REGION --no-enable-basic-auth \
+          --release-channel "regular" --machine-type "e2-medium" \
+          --disk-size "100" --metadata disable-legacy-endpoints=true \
+          --service-account ${{ secrets.GCLOUD_SVC_ACCT_FOR_GITHUB }} \
+          --network "projects/$GCP_PROJECT/global/networks/$GKE_NETWORK_NAME" \
+          --subnetwork "projects/$GCP_PROJECT/regions/$GKE_REGION/subnetworks/$GKE_SUBNETWORK_NAME" \
+          --no-enable-intra-node-visibility --cluster-dns=clouddns --cluster-dns-scope=cluster \
+          --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
+          --addons HorizontalPodAutoscaling,NodeLocalDNS,GcePersistentDiskCsiDriver --num-nodes "1" \
+          --default-max-pods-per-node "110" --enable-ip-alias
           echo "GKE_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep gke)" >> $GITHUB_ENV 
       -
         name: test-cluster-pods
@@ -600,6 +572,8 @@ jobs:
           EOF
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml --context $AWS_CLUSTER
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml --context $GKE_CLUSTER
+          kubectl delete -f ziti-k8s-agent-webhook-spec.yaml --context $AWS_CLUSTER || true
+          kubectl delete -f ziti-k8s-agent-webhook-spec.yaml --context $GKE_CLUSTER || true
           sleep 30
           kubectl apply -f ziti-k8s-agent-webhook-spec.yaml --context $AWS_CLUSTER
           kubectl apply -f ziti-k8s-agent-webhook-spec.yaml --context $GKE_CLUSTER
@@ -613,10 +587,10 @@ jobs:
         name: deploy-bookinfo-app
         if: success() || failure()
         run: |
-          kubectl create namespace test1 --context $AWS_CLUSTER
+          kubectl create namespace test1 --context $AWS_CLUSTER || true
           kubectl label namespace test1 openziti/ziti-tunnel=enabled --context $AWS_CLUSTER
-          kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $AWS_CLUSTER -n test1
-          kubectl create namespace test2 --context $GKE_CLUSTER
+          kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $AWS_CLUSTER -n test1 
+          kubectl create namespace test2 --context $GKE_CLUSTER || true
           kubectl label namespace test2 openziti/ziti-tunnel=enabled --context $GKE_CLUSTER
           kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $GKE_CLUSTER -n test2
           sleep 30
