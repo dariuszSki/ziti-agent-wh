@@ -574,11 +574,10 @@ jobs:
           EOF
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml --context $AWS_CLUSTER
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml --context $GKE_CLUSTER
-          kubectl delete -f ziti-k8s-agent-webhook-spec.yaml --context $AWS_CLUSTER || true
-          kubectl delete -f ziti-k8s-agent-webhook-spec.yaml --context $GKE_CLUSTER || true
           sleep 30
           kubectl apply -f ziti-k8s-agent-webhook-spec.yaml --context $AWS_CLUSTER
           kubectl apply -f ziti-k8s-agent-webhook-spec.yaml --context $GKE_CLUSTER
+          sleep 30
       -
         name: check-webhook-status
         if: success() || failure()
@@ -589,10 +588,10 @@ jobs:
         name: deploy-bookinfo-app
         if: success() || failure()
         run: |
-          kubectl create namespace test1 --context $AWS_CLUSTER || true
+          kubectl create namespace test1 --context $AWS_CLUSTER
           kubectl label namespace test1 openziti/ziti-tunnel=enabled --context $AWS_CLUSTER
           kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $AWS_CLUSTER -n test1 
-          kubectl create namespace test2 --context $GKE_CLUSTER || true
+          kubectl create namespace test2 --context $GKE_CLUSTER
           kubectl label namespace test2 openziti/ziti-tunnel=enabled --context $GKE_CLUSTER
           kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $GKE_CLUSTER -n test2
           sleep 30
