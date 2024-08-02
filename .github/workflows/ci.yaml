@@ -611,6 +611,8 @@ jobs:
             curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews >> testcase_curl_output.log
           done
           test/verify_test_results.py
+          kubectl logs `kubectl get pods -n ziti --context  $AWS_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $AWS_CLUSTER
+          kubectl logs `kubectl get pods -n ziti --context  $GKE_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $GKE_CLUSTER
       -
         name: scaledown-2-testcase-02
         if: success() || failure()
@@ -639,11 +641,16 @@ jobs:
             curl -s -X GET http://productpage.ziti:9080/productpage?u=test | grep reviews >> testcase_curl_output.log
           done
           test/verify_test_results.py
+          kubectl logs `kubectl get pods -n ziti --context  $AWS_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $AWS_CLUSTER
+          kubectl logs `kubectl get pods -n ziti --context  $GKE_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $GKE_CLUSTER
       -
         name: delete-bookinfo-app
         run: |
-          kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $AWS_CLUSTER -n test1
-          kubectl delete -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $GKE_CLUSTER -n test2
+          kubectl delete -f test/bookinfo.yaml --context $AWS_CLUSTER -n test1
+          kubectl delete -f test/bookinfo.yaml --context $GKE_CLUSTER -n test2
+          sleep 30
+          kubectl logs `kubectl get pods -n ziti --context  $AWS_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $AWS_CLUSTER
+          kubectl logs `kubectl get pods -n ziti --context  $GKE_CLUSTER -o name | grep ziti-admission-wh` -n ziti --context  $GKE_CLUSTER
       -
         name: delete-eks-cluster
         if: success() || failure()
