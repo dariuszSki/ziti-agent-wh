@@ -205,12 +205,14 @@ jobs:
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"`
           NF_NETWORK_ID=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
-          if [[ ! -z "$NF_NETWORK_ID" ]]; then
+          echo "Network id is $NF_NETWORK_ID before"
+          if [ "$NF_NETWORK_ID" ]; then
             export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
                 --header "Authorization: $token_type $token"
             sleep 120
           fi 
+          echo "Network id is $NF_NETWORK_ID after"
           cat <<EOF >nf-network-services-create.postman_global.json
             {
               "id": "8cbd9872-4829-4670-ae4f-9642416c3b28",
