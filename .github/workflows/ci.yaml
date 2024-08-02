@@ -134,10 +134,10 @@ jobs:
               privateAccess: true
           EOF
           eksctl get clusters  --region $AWS_REGION -o json 
-          STATUS=`eksctl get clusters  --region $AWS_REGION -o json | jq -r '.[] | select(.name=="$CLUSTER_NAME").Status'`
+          STATUS=`eksctl get clusters --region $AWS_REGION -o json | jq -r '.[] | select(.name=="$CLUSTER_NAME").Status'`
           if [[ ! -z "$STATUS" ]]; then
             eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction
-          else
+          fi
           eksctl create cluster -f ./eks-cluster.yaml
           echo "AWS_CLUSTER=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME | grep eks)" >> $GITHUB_ENV   
       -
