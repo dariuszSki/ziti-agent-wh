@@ -133,7 +133,7 @@ jobs:
               publicAccess: true
               privateAccess: true
           EOF
-          STATUS=`eksctl get cluster --name $CLUSTER_NAME  --region $AWS_REGION -o json | jq -r '.[].Status'`
+          STATUS=`eksctl get cluster --name $CLUSTER_NAME  --region $AWS_REGION -o json | jq -r '.[].Status' || true`
           if [[ ! -z "$STATUS" ]]; then
             eksctl delete cluster -f ./eks-cluster.yaml --force --disable-nodegroup-eviction
           else
@@ -142,7 +142,7 @@ jobs:
       -
         name: create-gke-cluster
         run: |
-          STATUS=`gcloud container --project $GCP_PROJECT clusters describe $CLUSTER_NAME --region $GKE_REGION --format json | jq -r '.status'`
+          STATUS=`gcloud container --project $GCP_PROJECT clusters describe $CLUSTER_NAME --region $GKE_REGION --format json | jq -r '.status' || true`
           if [[ ! -z "$STATUS" ]]; then
             gcloud container --project $GCP_PROJECT clusters delete $CLUSTER_NAME --region $GKE_REGION --quiet
           fi
