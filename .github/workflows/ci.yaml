@@ -197,22 +197,20 @@ jobs:
         name: create-nf-network-services
         run: |
           export RESPONSE=`curl --silent --location --request POST "https://netfoundry-production-xfjiye.auth.us-east-1.amazoncognito.com/oauth2/token" \
-                            --header "Content-Type: application/x-www-form-urlencoded" \
-                            --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
+              --header "Content-Type: application/x-www-form-urlencoded" \
+              --user "${{ secrets.NF_API_CLIENT_ID_FOR_GITHUB }}:${{ secrets.NF_API_CLIENT_PW_FOR_GITHUB }}" --data-urlencode "grant_type=client_credentials"`
           export token=`echo $RESPONSE |jq -r .access_token`
           export token_type=`echo $RESPONSE |jq -r .token_type`
           export network_list=`curl --silent --location --request GET "https://gateway.production.netfoundry.io/core/v3/networks" \
-                --header "Content-Type: application/json" \
-                --header "Authorization: $token_type $token"`
-          NF_NETWORK_ID=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
-          echo "Network id is $NF_NETWORK_ID before"
-          if [ "$NF_NETWORK_ID" ]; then
+              --header "Content-Type: application/json" \
+              --header "Authorization: $token_type $token"`
+          export NF_NETWORK_ID=`echo $network_list | jq -r --arg NF_NETWORK_NAME "$NF_NETWORK_NAME" '._embedded.networkList[] | select(.name==$NF_NETWORK_NAME).id'`
+          if [[ ! -z "$NF_NETWORK_ID" ]]; then
             export network_status=`curl --silent --location --request DELETE "https://gateway.production.netfoundry.io/core/v3/networks/$NF_NETWORK_ID" \
                 --header "Content-Type: application/json" \
-                --header "Authorization: $token_type $token"
+                --header "Authorization: $token_type $token"`
             sleep 120
           fi 
-          echo "Network id is $NF_NETWORK_ID after"
           cat <<EOF >nf-network-services-create.postman_global.json
             {
               "id": "8cbd9872-4829-4670-ae4f-9642416c3b28",
