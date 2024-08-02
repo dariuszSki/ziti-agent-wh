@@ -594,7 +594,7 @@ jobs:
           kubectl create namespace test2 --context $GKE_CLUSTER
           kubectl label namespace test2 openziti/ziti-tunnel=enabled --context $GKE_CLUSTER
           kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/bookinfo/platform/kube/bookinfo.yaml --context $GKE_CLUSTER -n test2
-          sleep 30
+          sleep 150
       - 
         name: run-testcase-01
         run: |
@@ -621,7 +621,7 @@ jobs:
           kubectl scale deploy reviews-v1 --replicas=0 -n test2 --context  $GKE_CLUSTER
           kubectl scale deploy reviews-v2 --replicas=0 -n test2 --context  $GKE_CLUSTER
           kubectl scale deploy reviews-v3 --replicas=0 -n test2 --context  $GKE_CLUSTER
-          sleep 30
+          sleep 150
       - 
         name: run-testcase-02
         if: success() || failure()
