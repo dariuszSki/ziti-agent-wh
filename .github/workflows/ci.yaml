@@ -1,6 +1,11 @@
 name: ci
+
 on:
   push:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   docker:
     runs-on: ubuntu-latest
