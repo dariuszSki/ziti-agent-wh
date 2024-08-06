@@ -3,7 +3,7 @@ name: ci
 on:
   push:
   pull_request:
-    types: [opened, edited]
+    types: [opened, synchronize]
 
 env:
   CLUSTER_NAME: ziti-k8s-agent-regression 
@@ -42,7 +42,7 @@ jobs:
   #         push: true
   #         tags: elblag91/ziti-k8s-agent:${{ github.ref_name }}
   regression_test: 
-    if: github.event_name == 'pull_request' && ( github.event.action == 'opened' || github.event.action == 'synchronize' )
+    if: github.event_name == 'pull_request' && github.event.action == 'opened' || 'synchronize'
     # needs: [docker]
     runs-on: ubuntu-latest
     permissions:
