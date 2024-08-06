@@ -18,7 +18,7 @@ env:
 
 jobs:
   regression_test: 
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.event.workflow_run.conclusion == 'success' && github.event_name == 'pull_request' && github.event.action == 'synchronize' || 'opened' || 'edited'
     runs-on: ubuntu-latest
     permissions:
       contents: read
