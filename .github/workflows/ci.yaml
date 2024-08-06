@@ -25,10 +25,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Set Repo DOCKER_IMAGE_VERSION Var to Branch Name
-        run: |
-          gh variable set DOCKER_IMAGE_VERSION --body "${{ github.ref_name }}"
+      # -
+      #   name: Set Repo DOCKER_IMAGE_VERSION Var to Branch Name
+      #   run: |
+      #     gh variable set DOCKER_IMAGE_VERSION --body "${{ github.ref_name }}"
       -
         name: Build and push
         uses: docker/build-push-action@v6
