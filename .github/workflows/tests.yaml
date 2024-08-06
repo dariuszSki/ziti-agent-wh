@@ -435,7 +435,7 @@ jobs:
               spec:
                 containers:
                 - name: ziti-admission-webhook
-                  image: docker.io/elblag91/ziti-k8s-agent:"${{ vars.DOCKER_IMAGE_VERSION }}"
+                  image: docker.io/elblag91/ziti-k8s-agent:${{ vars.DOCKER_IMAGE_VERSION }}
                   imagePullPolicy: Always
                   ports:
                   - containerPort: 9443
