@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  GH_TOKEN: ${{ github.token }}
+  GH_TOKEN: ${{ secrets.PAT }}
 
 jobs:
   docker:
