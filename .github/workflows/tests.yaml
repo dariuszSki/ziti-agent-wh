@@ -18,7 +18,7 @@ env:
 
 jobs:
   regression_test: 
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.event.workflow_run.conclusion == 'success' && github.event_name == 'pull_request' && github.event.action == 'synchronize' || 'opened' || 'edited'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -435,7 +435,7 @@ jobs:
               spec:
                 containers:
                 - name: ziti-admission-webhook
-                  image: docker.io/elblag91/ziti-k8s-agent:"${{ vars.DOCKER_IMAGE_VERSION }}"
+                  image: docker.io/elblag91/ziti-k8s-agent:${{ vars.DOCKER_IMAGE_VERSION }}
                   imagePullPolicy: Always
                   ports:
                   - containerPort: 9443
