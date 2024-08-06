@@ -28,7 +28,7 @@ jobs:
       -
         name: Set Repo DOCKER_IMAGE_VERSION Var to Branch Name
         run: |
-          gh variable set DOCKER_IMAGE_VERSIO --body "${{ github.ref_name }}"
+          gh variable set DOCKER_IMAGE_VERSION --body "${{ github.ref_name }}"
       -
         name: Build and push
         uses: docker/build-push-action@v6
