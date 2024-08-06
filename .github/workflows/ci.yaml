@@ -9,7 +9,6 @@ env:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
       -
         name: Checkout
@@ -29,9 +28,9 @@ jobs:
       -
         name: Set Repo DOCKER_IMAGE_VERSION Var to Branch Name
         run: |
-          echo "Image Version before is $DOCKER_IMAGE_VERSION" 
+          gh variable list 
           gh variable set DOCKER_IMAGE_VERSION --body "${{ github.ref_name }}"
-          echo "Image Version after is $DOCKER_IMAGE_VERSION" 
+          gh variable list 
       -
         name: Build and push
         uses: docker/build-push-action@v6
