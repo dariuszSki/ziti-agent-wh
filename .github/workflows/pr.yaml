@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize]
 
 env:
-  GH_TOKEN: ${{ secrets.PAT }}
   CLUSTER_NAME: ziti-k8s-agent-regression 
   AWS_REGION: us-west-2
   GKE_REGION: us-central1
@@ -14,7 +13,7 @@ env:
   NF_NETWORK_NAME: ziti-k8s-agent-regression
 
 jobs:
-  docker:
+  build_deploy:
     runs-on: ubuntu-latest
     steps:
       -
@@ -33,11 +32,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Set Repo DOCKER_IMAGE_VERSION Var to Run ID
-        run: |
-          gh variable list 
-          gh variable set DOCKER_IMAGE_VERSION --body ${{ github.run_id }}
-          gh variable list 
+        name: Check Run ID
+        run: echo ${{ github.run_id }}
       -
         name: Build and push
         uses: docker/build-push-action@v6
@@ -48,7 +44,7 @@ jobs:
           push: true
           tags: elblag91/ziti-k8s-agent:${{ github.run_id }}
   regression_test:
-    needs: [docker]
+    needs: [build_deploy]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,11 +54,8 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
       -
-        name: Set Repo DOCKER_IMAGE_VERSION Var to Run ID
-        run: |
-          gh variable list 
-          gh variable set DOCKER_IMAGE_VERSION --body ${{ github.run_id }}
-          gh variable list 
+        name: Check Run ID
+        run: echo ${{ github.run_id }}
       - 
         name: Authenticate to AWS Cloud
         uses: aws-actions/configure-aws-credentials@v4
