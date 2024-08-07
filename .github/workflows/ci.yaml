@@ -48,8 +48,7 @@ jobs:
           push: true
           tags: elblag91/ziti-k8s-agent:${{ github.run_id }}
   regression_test:
-    if:  github.event_name == 'pull_request' && github.event.action == 'synchronize' || 'opened' || 'edited'
-    needs: docker
+    if:  github.event_name != 'push' 
     runs-on: ubuntu-latest
     permissions:
       contents: read
