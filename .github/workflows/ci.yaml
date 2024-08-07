@@ -3,7 +3,7 @@ name: ci
 on: [push]
 
 jobs:
-  docker:
+  build_deploy:
     runs-on: ubuntu-latest
     steps:
       -
