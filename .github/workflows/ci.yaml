@@ -1,18 +1,6 @@
 name: ci
 
-on:
-  push:
-  pull_request:
-    types: [opened, synchronize]
-
-env:
-  GH_TOKEN: ${{ secrets.PAT }}
-  CLUSTER_NAME: ziti-k8s-agent-regression 
-  AWS_REGION: us-west-2
-  GKE_REGION: us-central1
-  GKE_NETWORK_NAME: default
-  GKE_SUBNETWORK_NAME: default
-  NF_NETWORK_NAME: ziti-k8s-agent-regression
+on: [push]
 
 jobs:
   docker:
