@@ -49,7 +49,7 @@ jobs:
           push: true
           tags: elblag91/ziti-k8s-agent:${{ github.run_id }}
   regression_test:
-    if:  github.event_name != 'push' && ${{ !cancelled() && !failure() }}
+    if:  github.event_name != 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
