@@ -57,6 +57,12 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v4
+      -
+        name: Set Repo DOCKER_IMAGE_VERSION Var to Run ID
+        run: |
+          gh variable list 
+          gh variable set DOCKER_IMAGE_VERSION --body ${{ github.run_id }}
+          gh variable list 
       - 
         name: Authenticate to AWS Cloud
         uses: aws-actions/configure-aws-credentials@v4
@@ -462,7 +468,7 @@ jobs:
               spec:
                 containers:
                 - name: ziti-admission-webhook
-                  image: docker.io/elblag91/ziti-k8s-agent:${{ vars.DOCKER_IMAGE_VERSION }}
+                  image: docker.io/elblag91/ziti-k8s-agent:${{ github.run_id }}
                   imagePullPolicy: Always
                   ports:
                   - containerPort: 9443

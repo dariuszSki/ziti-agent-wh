@@ -34,12 +34,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Set Repo DOCKER_IMAGE_VERSION Var to Run ID
-        run: |
-          gh variable list 
-          gh variable set DOCKER_IMAGE_VERSION --body ${{ github.run_id }}
-          gh variable list 
-      -
         name: Build and push
         uses: docker/build-push-action@v6
         with:
