@@ -2,9 +2,17 @@ name: ci
 
 on:
   push:
+  pull_request:
+    types: [opened, synchronize]
 
 env:
   GH_TOKEN: ${{ secrets.PAT }}
+  CLUSTER_NAME: ziti-k8s-agent-regression 
+  AWS_REGION: us-west-2
+  GKE_REGION: us-central1
+  GKE_NETWORK_NAME: default
+  GKE_SUBNETWORK_NAME: default
+  NF_NETWORK_NAME: ziti-k8s-agent-regression
 
 jobs:
   docker:
@@ -26,12 +34,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Set Repo DOCKER_IMAGE_VERSION Var to Run ID
-        run: |
-          gh variable list 
-          gh variable set DOCKER_IMAGE_VERSION --body ${{ github.run_id }}
-          gh variable list 
-      -
         name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -40,4 +42,3 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: elblag91/ziti-k8s-agent:${{ github.run_id }}
- 
