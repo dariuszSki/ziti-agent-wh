@@ -43,8 +43,8 @@ jobs:
         if: success() || failure()
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
-          ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io"
-          export TF_VAR_ssh_public_key=`cat $HOME/.ssh/id_rsa.pub`
+          ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
+          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh run
       - 
         name: check-test-status
