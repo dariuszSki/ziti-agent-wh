@@ -86,10 +86,3 @@ jobs:
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
           ./test_cases.sh cleanup
-
-                  
-          
-                    
-          
-                  
-                  
