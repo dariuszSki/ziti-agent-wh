@@ -56,8 +56,8 @@ jobs:
           terraform output -json | jq .backend_public_ips.value
           while :
           do
-            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'ps -auxf | grep http | grep -v ziggy' > status
-            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'ps -auxf | grep http | grep -v ziggy' >> status
+            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'ps -auxf | grep http | grep -v ziggy' > status
+            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'ps -auxf | grep http | grep -v ziggy' >> status
             echo $status  
             count=`cat status |wc -l`
             if [ $count == 0 ]; then
@@ -69,8 +69,8 @@ jobs:
         if: success() || failure()
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
-          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'tail -n 1 /var/log/http_test.json' > result
-          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'tail -n 1 /var/log/http_test.json' >> result
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'tail -n 1 /var/log/http_test.json' > result
+          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'tail -n 1 /var/log/http_test.json' >> result
           echo $result
           count=`cat result | grep Passed |wc -l`
           if [ $count > 0 ]; then
@@ -85,4 +85,6 @@ jobs:
         if: success() || failure()
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
+          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
+          rm ./zfw_rsa*
           ./test_cases.sh cleanup
