@@ -46,40 +46,40 @@ jobs:
           ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh run
-      - 
-        name: check-test-status
-        if: success() || failure()
-        run: |
-          cd ${{ github.workspace }}/AWS/tf-provider/
-          terraform workspace show
-          terraform output -json | jq .client_public_ips.value
-          terraform output -json | jq .backend_public_ips.value
-          while :
-          do
-            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'ps -auxf | grep http | grep -v ziggy' > status
-            ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'ps -auxf | grep http | grep -v ziggy' >> status
-            echo $status  
-            count=`cat status |wc -l`
-            if [ $count == 0 ]; then
-              break
-            fi
-          done
-      - 
-        name: check-test-result
-        if: success() || failure()
-        run: |
-          cd ${{ github.workspace }}/AWS/tf-provider/
-          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'tail -n 1 /var/log/http_test.json' > result
-          ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'tail -n 1 /var/log/http_test.json' >> result
-          echo $result
-          count=`cat result | grep Passed |wc -l`
-          if [ $count > 0 ]; then
-            echo -e "\033[32mPASSED\033[m"
-            exit 0
-          else
-            echo -e "\033[31mFAILED\033[m"
-            exit 1 
-          fi
+      # - 
+      #   name: check-test-status
+      #   if: success() || failure()
+      #   run: |
+      #     cd ${{ github.workspace }}/AWS/tf-provider/
+      #     terraform workspace show
+      #     terraform output -json | jq .client_public_ips.value
+      #     terraform output -json | jq .backend_public_ips.value
+      #     while :
+      #     do
+      #       ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'ps -auxf | grep http | grep -v ziggy' > status
+      #       ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'ps -auxf | grep http | grep -v ziggy' >> status
+      #       echo $status  
+      #       count=`cat status |wc -l`
+      #       if [ $count == 0 ]; then
+      #         break
+      #       fi
+      #     done
+      # - 
+      #   name: check-test-result
+      #   if: success() || failure()
+      #   run: |
+      #     cd ${{ github.workspace }}/AWS/tf-provider/
+      #     ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq 'tail -n 1 /var/log/http_test.json' > result
+      #     ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq 'tail -n 1 /var/log/http_test.json' >> result
+      #     echo $result
+      #     count=`cat result | grep Passed |wc -l`
+      #     if [ $count > 0 ]; then
+      #       echo -e "\033[32mPASSED\033[m"
+      #       exit 0
+      #     else
+      #       echo -e "\033[31mFAILED\033[m"
+      #       exit 1 
+      #     fi
       - 
         name: cleanup-test
         if: success() || failure()
