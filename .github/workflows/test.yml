@@ -63,9 +63,10 @@ jobs:
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status 
-            count=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
-            echo $count
-            if [ $count == 0 ] || (( EPOCHSECONDS-start > TEST_TIMEOUT )); then
+            COUNT=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
+            echo "$COUNT Process(es) running with $(( TEST_TIMEOUT-(EPOCHSECONDS-start) )) seconds to timeout"
+            sleep 1
+            if ((COUNT == 0 || EPOCHSECONDS-start > TEST_TIMEOUT )); then
               sleep 15
               break
             fi
@@ -87,6 +88,7 @@ jobs:
             exit 1
           else
              echo -e "\033[31mFAILED\033[m"
+             exit 1
           fi
       - 
         name: cleanup-test
