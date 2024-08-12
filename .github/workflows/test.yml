@@ -61,11 +61,11 @@ jobs:
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
-            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status
-            /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status  
+            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status 
             count=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
             echo $count
-            if [ $count == 0 ] || (( EPOCHSECONDS-start > $TEST_TIMEOUT )); then
+            if [ $count == 0 ] || (( EPOCHSECONDS-start > TEST_TIMEOUT )); then
+              sleep 15
               break
             fi
           done
@@ -78,12 +78,14 @@ jobs:
           /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
           /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result
           count=`/usr/bin/cat result | grep Passed |wc -l`
-          if [ $count > 0 ]; then
+          if [ $count == 2 ]; then
             echo -e "\033[32mPASSED\033[m"
             exit 0
+          elif [ $count == 1 ]; then
+            echo -e "\033[33mPARTIALLYPASSED\033[m"
+            exit 1
           else
-            echo -e "\033[31mFAILED\033[m"
-            exit 1 
+             echo -e "\033[31mFAILED\033[m"
           fi
       - 
         name: cleanup-test
