@@ -58,6 +58,7 @@ jobs:
           terraform output -json | jq .client_public_ips.value
           terraform output -json | jq .backend_public_ips.value
           start=$EPOCHSECONDS
+          export TEST_TIMEOUT=${{vars.TEST_TIMEOUT}}
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
