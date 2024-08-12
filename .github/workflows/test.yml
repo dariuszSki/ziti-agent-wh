@@ -46,6 +46,8 @@ jobs:
           ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           export TF_VAR_test_iterate_count=2
+          export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
+          export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           ./test_cases.sh run
       - 
         name: check-test-status
@@ -89,5 +91,7 @@ jobs:
           cd ${{ github.workspace }}/AWS/tf-provider/
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           export TF_VAR_test_iterate_count=2
+          export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
+          export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           rm ./zfw_rsa*
           ./test_cases.sh cleanup
