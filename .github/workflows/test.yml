@@ -57,19 +57,20 @@ jobs:
           terraform workspace show
           terraform output -json | jq .client_public_ips.value
           terraform output -json | jq .backend_public_ips.value
-          start=$EPOCHSECONDS
+          COUNT=0
           export TEST_TIMEOUT=${{vars.TEST_TIMEOUT}}
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status 
-            COUNT=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
-            echo "$COUNT Process(es) running with $(( TEST_TIMEOUT-(EPOCHSECONDS-start) )) seconds to timeout"
+            WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
+            echo "$WC Process(es) running with $(( TEST_TIMEOUT-COUNT )) seconds to timeout"
             sleep 1
-            if ((COUNT == 0 || EPOCHSECONDS-start > TEST_TIMEOUT )); then
+            if ((WC == 0 || COUNT >= TEST_TIMEOUT )); then
               sleep 15
               break
             fi
+            ((++COUNT))
           done
       - 
         name: check-interception:test-result
