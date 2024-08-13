@@ -7,6 +7,12 @@ env:
   APP_NAME: 'zfw'
   MAINTAINER: 'Robert Caamano'
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
+  ROUTER_PREFIX: 'backend-router'
+  TF_VAR_ssh_public_key: "$(cat ./zfw_rsa.pub)"
+  TF_VAR_test_iterate_count: 2
+  NF_API_CLIENT_ID: "${{ secrets.NF_API_CLIENT_ID }}"
+  NF_API_CLIENT_SECRET: "${{ secrets.NF_API_CLIENT_SECRET }}"
+  TEST_TIMEOUT: ${{vars.TEST_TIMEOUT}}
 
 jobs: 
   regression_test:
@@ -45,11 +51,6 @@ jobs:
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
           ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
-          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
-          export TF_VAR_test_iterate_count=2
-          export ROUTER_PREFIX="backend-router"
-          export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
-          export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           ./test_cases.sh run
         shell: bash
       - 
@@ -62,7 +63,6 @@ jobs:
           terraform output -json | jq .backend_public_ips.value
           START_TIME=$EPOCHSECONDS
           WC=0
-          export TEST_TIMEOUT=${{vars.TEST_TIMEOUT}}
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
@@ -101,11 +101,6 @@ jobs:
         if: success() || failure()
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
-          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
-          export TF_VAR_test_iterate_count=2
-          export ROUTER_PREFIX="backend-router"
-          export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
-          export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           rm ./zfw_rsa*
           ./test_cases.sh cleanup
         shell: bash
