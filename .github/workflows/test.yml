@@ -38,6 +38,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
             https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
             sudo tee /etc/apt/sources.list.d/hashicorp.list
+        shell: bash
       - 
         name: start-test
         if: success() || failure()
@@ -49,6 +50,7 @@ jobs:
           export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
           export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           ./test_cases.sh run
+        shell: bash
       - 
         name: check-interception:test-status
         if: success() || failure()
@@ -57,22 +59,22 @@ jobs:
           terraform workspace show
           terraform output -json | jq .client_public_ips.value
           terraform output -json | jq .backend_public_ips.value
-          # COUNT=0
+          START_TIME=$EPOCHSECONDS
           WC=0
-          # export TEST_TIMEOUT=${{vars.TEST_TIMEOUT}}
+          export TEST_TIMEOUT=${{vars.TEST_TIMEOUT}}
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status 
             WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
-            echo "$WC Process(es) running #with $(( TEST_TIMEOUT-COUNT )) seconds to timeout"
-            sleep 1
-            if [ $WC == 0 ]; then
-              sleep 15
+            echo "$WC Process(es) running with $(( TEST_TIMEOUT-(EPOCHSECONDS-START_TIME) )) seconds left to reach execution timeout"
+            sleep 60
+            if (( $WC == 0 || EPOCHSECONDS-START_TIME > TEST_TIMEOUT; then
               break
             fi
-            # ((++COUNT))
           done
+          echo "done!"
+        shell: bash
       - 
         name: check-interception:test-result
         if: success() || failure()
@@ -92,6 +94,7 @@ jobs:
              echo -e "\033[31mFAILED\033[m"
              exit 1
           fi
+        shell: bash
       - 
         name: cleanup-test
         if: success() || failure()
@@ -103,3 +106,4 @@ jobs:
           export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           rm ./zfw_rsa*
           ./test_cases.sh cleanup
+        shell: bash
