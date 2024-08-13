@@ -57,6 +57,7 @@ jobs:
         name: check-interception:test-status
         if: success() || failure()
         run: |
+          set -x
           cd ${{ github.workspace }}/AWS/tf-provider/
           terraform workspace show
           terraform output -json | jq .client_public_ips.value
@@ -75,11 +76,13 @@ jobs:
             fi
           done
           echo "done!"
+          set +x
         shell: bash
       - 
         name: check-interception:test-result
         if: success() || failure()
         run: |
+          set -x
           cd ${{ github.workspace }}/AWS/tf-provider/
           /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' > ${{ github.workspace }}/AWS/tf-provider/result
           /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
@@ -95,6 +98,7 @@ jobs:
              echo -e "\033[31mFAILED\033[m"
              exit 1
           fi
+          set +x
         shell: bash
       - 
         name: cleanup-test
