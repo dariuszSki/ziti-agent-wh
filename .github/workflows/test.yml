@@ -7,8 +7,7 @@ env:
   APP_NAME: 'zfw'
   MAINTAINER: 'Robert Caamano'
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
-  ROUTER_PREFIX: 'backend-router'
-  TF_VAR_ssh_public_key: "$(cat ./zfw_rsa.pub)"
+  ROUTER_PREFIX: 'zfw-router'
   TF_VAR_test_iterate_count: 2
   NF_API_CLIENT_ID: "${{ secrets.NF_API_CLIENT_ID }}"
   NF_API_CLIENT_SECRET: "${{ secrets.NF_API_CLIENT_SECRET }}"
@@ -51,6 +50,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
           ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
+          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh run
         shell: bash
       - 
@@ -101,6 +101,7 @@ jobs:
         if: success() || failure()
         run: |
           cd ${{ github.workspace }}/AWS/tf-provider/
-          rm ./zfw_rsa*
+          export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh cleanup
+          rm ./zfw_rsa*
         shell: bash
