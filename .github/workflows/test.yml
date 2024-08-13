@@ -47,6 +47,7 @@ jobs:
           ssh-keygen -t rsa -b 4096 -C "cldeng@netfoundry.io" -f ./zfw_rsa -q -N ""
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           export TF_VAR_test_iterate_count=2
+          export ROUTER_PREFIX="backend-router"
           export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
           export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           ./test_cases.sh run
@@ -65,9 +66,9 @@ jobs:
           while :
           do
             /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
-            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >>${{ github.workspace }}/AWS/tf-provider/status 
+            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >> ${{ github.workspace }}/AWS/tf-provider/status 
             WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
-            echo "$WC Process(es) running with $(( TEST_TIMEOUT-(EPOCHSECONDS-START_TIME) )) seconds left to reach execution timeout"
+            echo "$WC Process(es) still running and $(( TEST_TIMEOUT-(EPOCHSECONDS-START_TIME) )) seconds left to reach execution timeout"
             sleep 60
             if (( $WC == 0 || EPOCHSECONDS-START_TIME > TEST_TIMEOUT )); then
               break
@@ -102,6 +103,7 @@ jobs:
           cd ${{ github.workspace }}/AWS/tf-provider/
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           export TF_VAR_test_iterate_count=2
+          export ROUTER_PREFIX="backend-router"
           export NF_API_CLIENT_ID="${{ secrets.NF_API_CLIENT_ID }}"
           export NF_API_CLIENT_SECRET="${{ secrets.NF_API_CLIENT_SECRET }}"
           rm ./zfw_rsa*
