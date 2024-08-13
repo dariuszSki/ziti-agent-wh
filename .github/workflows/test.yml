@@ -69,7 +69,7 @@ jobs:
             WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
             echo "$WC Process(es) running with $(( TEST_TIMEOUT-(EPOCHSECONDS-START_TIME) )) seconds left to reach execution timeout"
             sleep 60
-            if (( $WC == 0 || EPOCHSECONDS-START_TIME > TEST_TIMEOUT; then
+            if (( $WC == 0 || EPOCHSECONDS-START_TIME > TEST_TIMEOUT )); then
               break
             fi
           done
