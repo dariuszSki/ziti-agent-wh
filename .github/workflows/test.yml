@@ -95,14 +95,18 @@ jobs:
             echo $FAIL
             if [ $PASS == 2 ]; then
               echo -e "\033[32mPASSED\033[m"
+              cat ./result
               exit 0
             elif [ $PASS == 1 ]; then
               echo -e "\033[33mPARTIALLYPASSED\033[m"
+              cat ./result
               exit 1
             elif [ $FAIL == 2 ]; then
               echo -e "\033[31mFAILED\033[m"
+              cat ./result
               exit 1
             else
+              cat ./result
               continue
             fi
           done
