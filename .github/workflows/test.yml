@@ -53,49 +53,58 @@ jobs:
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh run
         shell: bash
-      - 
-        name: check-interception:test-status
-        if: success() || failure()
-        run: |
-          cd ${{ github.workspace }}/AWS/tf-provider/
-          terraform workspace show
-          terraform output -json | jq .client_public_ips.value
-          terraform output -json | jq .backend_public_ips.value
-          WC=0
-          while :
-          do
-            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
-            /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >> ${{ github.workspace }}/AWS/tf-provider/status 
-            WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
-            echo "$WC Process(es) still running, need more time"
-            sleep 300
-            if [ $WC == 0 ]; then
-              break
-            fi
-          done
-          echo "done!"
-        shell: bash
-        timeout-minutes: 45
+      # - 
+      #   name: check-interception:test-status
+      #   if: success() || failure()
+      #   run: |
+      #     cd ${{ github.workspace }}/AWS/tf-provider/
+      #     terraform workspace show
+      #     terraform output -json | jq .client_public_ips.value
+      #     terraform output -json | jq .backend_public_ips.value
+      #     WC=0
+      #     while :
+      #     do
+      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
+      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >> ${{ github.workspace }}/AWS/tf-provider/status 
+      #       WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
+      #       echo "$WC Process(es) still running, need more time"
+      #       sleep 300
+      #       if [ $WC == 0 ]; then
+      #         break
+      #       fi
+      #     done
+      #     echo "done!"
+      #   shell: bash
+      #   timeout-minutes: 45
       - 
         name: check-interception:test-result
         if: success() || failure()
         run: |
+          set +e
           cd ${{ github.workspace }}/AWS/tf-provider/
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' > ${{ github.workspace }}/AWS/tf-provider/result
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
-          /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result
-          count=`/usr/bin/cat result | grep Passed |wc -l`
-          if [ $count == 2 ]; then
-            echo -e "\033[32mPASSED\033[m"
-            exit 0
-          elif [ $count == 1 ]; then
-            echo -e "\033[33mPARTIALLYPASSED\033[m"
-            exit 1
-          else
-             echo -e "\033[31mFAILED\033[m"
-             exit 1
-          fi
+          while :
+          do
+            sleep 900
+            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' > ${{ github.workspace }}/AWS/tf-provider/result
+            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
+            /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result
+            PASS=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Passed |wc -l`
+            FAIL=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Failed |wc -l`
+            if [ $PASS == 2 ]; then
+              echo -e "\033[32mPASSED\033[m"
+              exit 0
+            elif [ $PASS == 1 ]; then
+              echo -e "\033[33mPARTIALLYPASSED\033[m"
+              exit 1
+            elif [ $FAIL == 2 ]; then
+              echo -e "\033[31mFAILED\033[m"
+              exit 1
+            else
+              continue
+            fi
+          done
         shell: bash
+        timeout-minutes: 45
       - 
         name: cleanup-test
         if: success() || failure()
