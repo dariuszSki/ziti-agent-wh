@@ -33,6 +33,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_FOR_GITHUB }}
           role-session-name: GitHubActions
           audience: sts.amazonaws.com
+          role-duration-seconds: 14400
       - 
         name: install-terraform-jq
         run: |
@@ -90,6 +91,8 @@ jobs:
             /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result
             PASS=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Passed |wc -l`
             FAIL=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Failed |wc -l`
+            echo $PASS
+            echo $FAIL
             if [ $PASS == 2 ]; then
               echo -e "\033[32mPASSED\033[m"
               exit 0
