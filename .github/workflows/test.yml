@@ -8,10 +8,9 @@ env:
   MAINTAINER: 'Robert Caamano'
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
   ROUTER_PREFIX: 'dariusz-rtr'
-  TF_VAR_test_iterate_count: 2
+  TF_VAR_test_iterate_count: ${{ fromJSON(vars.TEST_ITERATE_COUNT) }}
   NF_API_CLIENT_ID: "${{ secrets.NF_API_CLIENT_ID }}"
   NF_API_CLIENT_SECRET: "${{ secrets.NF_API_CLIENT_SECRET }}"
-  TEST_TIMEOUT: ${{vars.TEST_TIMEOUT}}
 
 jobs: 
   regression_test:
@@ -65,8 +64,8 @@ jobs:
       #     WC=0
       #     while :
       #     do
-      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
-      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >> ${{ github.workspace }}/AWS/tf-provider/status 
+      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[0]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' > ${{ github.workspace }}/AWS/tf-provider/status
+      #       /usr/bin/ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[1]) -tq '/usr/bin/ps -auxf | grep http | grep -v ziggy' >> ${{ github.workspace }}/AWS/tf-provider/status 
       #       WC=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/status |wc -l`
       #       echo "$WC Process(es) still running, need more time"
       #       sleep 300
@@ -83,8 +82,8 @@ jobs:
         run: |
           set +e
           cd ${{ github.workspace }}/AWS/tf-provider/
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/opt/openziti/bin/zfw -V'
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/opt/openziti/bin/zfw -V'
+          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[0]) -tq '/opt/openziti/bin/zfw -V'
+          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[1]) -tq '/opt/openziti/bin/zfw -V'
           while :
           do
             sleep 900
@@ -113,7 +112,7 @@ jobs:
             fi
           done
         shell: bash
-        timeout-minutes: ${{ env.TEST_TIMEOUT }}
+        timeout-minutes: ${{ fromJSON(vars.TEST_TIMEOUT) }}
       - 
         name: cleanup-test
         if: success() || failure()
