@@ -7,7 +7,8 @@ env:
   APP_NAME: 'zfw'
   MAINTAINER: 'Robert Caamano'
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
-  ROUTER_PREFIX: 'dara-rtr'
+  ROUTER_PREFIX: 'dariusz-rtr'
+  NF_NETWORK_NAME: "dariuszdev02"
   TF_VAR_test_iterate_count: ${{ fromJSON(vars.TEST_ITERATE_COUNT) }}
   NF_API_CLIENT_ID: "${{ secrets.NF_API_CLIENT_ID }}"
   NF_API_CLIENT_SECRET: "${{ secrets.NF_API_CLIENT_SECRET }}"
