@@ -54,6 +54,7 @@ jobs:
           export TF_VAR_ssh_public_key=`cat ./zfw_rsa.pub`
           ./test_cases.sh run
         shell: bash
+      
       # - 
       #   name: check-interception:test-status
       #   if: success() || failure()
