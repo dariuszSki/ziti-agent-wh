@@ -83,13 +83,13 @@ jobs:
         run: |
           set +e
           cd ${{ github.workspace }}/AWS/tf-provider/
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[0]) -tq '/opt/openziti/bin/zfw -V'
-          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[1]) -tq '/opt/openziti/bin/zfw -V'
+          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[0]) -tq 'sudo /opt/openziti/bin/zfw -V'
+          /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .backend_public_ips.value[1]) -tq 'sudo /opt/openziti/bin/zfw -V'
           while :
           do
             sleep 900
-            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' > ${{ github.workspace }}/AWS/tf-provider/result
-            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 1 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
+            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[0]) -tq '/usr/bin/tail -n 4 /var/log/http_test.json' > ${{ github.workspace }}/AWS/tf-provider/result
+            /usr/bin/ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ./zfw_rsa ziggy@$(terraform output -json | jq -r .client_public_ips.value[1]) -tq '/usr/bin/tail -n 4 /var/log/http_test.json' >> ${{ github.workspace }}/AWS/tf-provider/result
             /usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result
             PASS=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Passed |wc -l`
             FAIL=`/usr/bin/cat ${{ github.workspace }}/AWS/tf-provider/result | grep Failed |wc -l`
